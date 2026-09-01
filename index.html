@@ -20,6 +20,9 @@
     --shadow-float:0 12px 45px rgba(17,12,46,.12);
   }
   *{box-sizing:border-box;}
+  /* An author display rule outranks the UA sheet's [hidden], so state it once here
+     rather than remembering it per component. */
+  [hidden]{display:none !important;}
   body{margin:0;background:var(--canvas);color:var(--ink);font-family:var(--font-body);font-size:14px;line-height:1.64;letter-spacing:0.004em;}
   .wrap{max-width:1200px;margin:0 auto;padding:32px 24px 96px;}
 
@@ -146,7 +149,6 @@
 
   /* ---- login gate ---- */
   .gate{position:fixed;inset:0;background:var(--canvas);display:flex;align-items:center;justify-content:center;padding:24px;z-index:80;}
-  .gate[hidden]{display:none;}
   .gate-card{background:var(--white);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-float);padding:32px;width:400px;max-width:100%;}
   .gate-card .brand{margin-bottom:20px;}
   .gate-card h2{font-family:var(--font-display);font-size:26px;font-weight:400;letter-spacing:-0.02em;margin:0 0 4px;}
@@ -1369,7 +1371,17 @@ async function initSync(){
 }
 
 // ---- access state: 'connecting' | 'signedout' | 'pending' | 'member' ----
-let access = 'connecting', myRole = null, gateMode = 'signin';
+let access = 'connecting', myRole = null, gateMode = 'signin', gateFocused = false;
+
+// Remember the last email signed in with, so it does not have to be retyped.
+// Email only — a password is never stored.
+const LAST_EMAIL_KEY = 'ledger-last-email';
+function rememberEmail(email){
+  try{ localStorage.setItem(LAST_EMAIL_KEY, email); }catch(e){ /* storage blocked */ }
+}
+function lastEmail(){
+  try{ return localStorage.getItem(LAST_EMAIL_KEY) || ''; }catch(e){ return ''; }
+}
 
 function gateMsg(text, kind){
   const el = document.getElementById('gateMsg');
@@ -1409,6 +1421,16 @@ function renderGate(){
     return;
   }
   tabs.hidden = false; form.hidden = false; pend.hidden = true;
+
+  const emailField = document.getElementById('gEmail');
+  if(!emailField.value) emailField.value = lastEmail();
+  if(!gateFocused){
+    gateFocused = true;
+    // Land on whichever field still needs filling in.
+    const target = emailField.value ? 'gPassword' : 'gEmail';
+    setTimeout(()=>document.getElementById(target).focus(), 40);
+  }
+
   const registering = gateMode === 'register';
   title.textContent = registering ? 'Create an account' : 'Sign in';
   sub.textContent = registering
@@ -1461,6 +1483,7 @@ document.getElementById('gateSubmit').addEventListener('click', async ()=>{
         email, password, options: { emailRedirectTo: location.href.split('#')[0] }
       });
       if(error) throw error;
+      rememberEmail(email);
       if(data.session){
         session = data.session;
         await refreshAccess();
@@ -1470,6 +1493,7 @@ document.getElementById('gateSubmit').addEventListener('click', async ()=>{
     } else {
       const { data, error } = await sb.auth.signInWithPassword({ email, password });
       if(error) throw error;
+      rememberEmail(email);
       session = data.session;
       await refreshAccess();
       if(access === 'member') syncNow();
@@ -1498,6 +1522,7 @@ document.getElementById('gateMagic').addEventListener('click', async ()=>{
       email, options: { emailRedirectTo: location.href.split('#')[0] }
     });
     if(error) throw error;
+    rememberEmail(email);
     gateMsg('Link sent to ' + email + '. Open it on this device.', 'ok');
   }catch(err){
     gateMsg(err.message || 'Could not send the link.', 'err');
@@ -1540,6 +1565,8 @@ async function doSignOut(){
   await sb.auth.signOut();
   session = null; access = 'signedout'; myRole = null;
   setSyncStatus('signedout');
+  document.getElementById('gPassword').value = '';
+  gateFocused = false;          // focus the password box again on the way back in
   renderGate();
 }
 document.getElementById('gateSignOut').addEventListener('click', doSignOut);
