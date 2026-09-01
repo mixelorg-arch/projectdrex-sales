@@ -30,6 +30,7 @@
   .month-pill select{border:none;background:transparent;font-family:var(--font-body);font-size:13px;color:var(--ink);font-weight:500;}
   .btn{font-family:var(--font-body);font-size:14px;font-weight:500;padding:8px 16px;border-radius:var(--radius-pill);cursor:pointer;border:1px solid transparent;transition:opacity .15s ease;}
   .btn:hover{opacity:.85;}
+  .btn:focus-visible{outline:2px solid var(--cyan-edge);outline-offset:2px;}
   .btn-primary{background:var(--cyan);border-color:var(--cyan-edge);color:#fff;}
   .btn-ghost{background:transparent;border-color:var(--border);color:var(--ink);}
   .btn-row{display:flex;gap:8px;}
@@ -40,20 +41,18 @@
 
   /* hero */
   .hero{margin-bottom:40px;}
-  .hero h1{font-size:36px;line-height:1.2;letter-spacing:-0.02em;max-width:640px;}
+  .hero h1{font-size:36px;line-height:1.2;letter-spacing:-0.02em;max-width:640px;text-wrap:balance;}
   .hero p{color:var(--warm);max-width:520px;margin:12px 0 0;font-size:16px;line-height:1.69;}
 
   /* stat cards */
-  .stat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:40px;}
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:40px;}
   .stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-card);padding:20px;box-shadow:var(--shadow-card);}
   .stat-card .label{font-size:12px;color:var(--ash);margin-bottom:8px;}
-  .stat-card .value{font-family:var(--font-display);font-size:22px;letter-spacing:-0.02em;}
+  .stat-card .value{font-family:var(--font-display);font-size:22px;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;}
   .stat-card .value.neg{color:#b3413a;}
-  .stat-card input{border:none;background:transparent;font-family:var(--font-display);font-size:22px;letter-spacing:-0.02em;color:var(--ink);width:100%;padding:0;}
-  .stat-card input:focus{outline:none;}
 
   /* tabs */
-  .tabs{display:flex;gap:4px;margin-bottom:24px;border:1px solid var(--border);background:var(--white);padding:4px;border-radius:var(--radius-pill);width:fit-content;}
+  .tabs{display:flex;gap:4px;margin-bottom:24px;border:1px solid var(--border);background:var(--white);padding:4px;border-radius:var(--radius-pill);width:fit-content;flex-wrap:wrap;}
   .tab{padding:8px 18px;border-radius:var(--radius-pill);font-size:14px;cursor:pointer;color:var(--ink);border:none;background:transparent;font-family:var(--font-body);}
   .tab.active{background:var(--soot);color:#fff;}
 
@@ -61,16 +60,16 @@
   .section.active{display:block;}
 
   .card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:24px;margin-bottom:24px;}
-  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap;}
   .card-head h3{font-size:20px;}
+  .table-scroll{overflow-x:auto;}
 
   table{width:100%;border-collapse:collapse;font-size:13px;}
   th{text-align:left;color:var(--ash);font-weight:500;font-size:12px;padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
-  td{padding:10px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
+  td{padding:10px 10px;border-bottom:1px solid var(--border);white-space:nowrap;font-variant-numeric:tabular-nums;}
   tr.week-row td{background:var(--sky);font-weight:500;color:var(--ink);}
-  tr.week-sal-row td{background:#f5f5f4;font-weight:500;color:var(--warm);}
   tr:hover td{background:#fbfbfa;}
-  tr.week-row:hover td, tr.week-sal-row:hover td{background:var(--sky);}
+  tr.week-row:hover td{background:var(--sky);}
   .pill-status{display:inline-block;padding:2px 10px;border-radius:var(--radius-pill);font-size:11px;font-weight:500;}
   .pill-paid{background:var(--sky);color:var(--cyan-edge);}
   .pill-unpaid{background:#f5e8d8;color:#9a6a1f;}
@@ -78,13 +77,14 @@
   .row-actions{display:flex;gap:6px;}
   .icon-btn{border:1px solid var(--border);background:var(--white);width:26px;height:26px;border-radius:6px;cursor:pointer;color:var(--warm);font-size:12px;display:inline-flex;align-items:center;justify-content:center;}
   .icon-btn:hover{border-color:var(--ash);color:var(--ink);}
+  .icon-btn:focus-visible{outline:2px solid var(--cyan-edge);outline-offset:1px;}
 
   .empty{color:var(--ash);text-align:center;padding:32px 0;font-size:14px;}
 
   /* modal */
   .overlay{position:fixed;inset:0;background:rgba(12,10,9,.35);display:none;align-items:center;justify-content:center;z-index:50;}
   .overlay.active{display:flex;}
-  .modal{background:var(--white);border-radius:16px;box-shadow:var(--shadow-float);padding:28px;width:420px;max-width:92vw;max-height:88vh;overflow-y:auto;}
+  .modal{background:var(--white);border-radius:16px;box-shadow:var(--shadow-float);padding:28px;width:440px;max-width:92vw;max-height:88vh;overflow-y:auto;}
   .modal h3{font-size:20px;margin-bottom:18px;}
   .field{margin-bottom:14px;}
   .field label{display:block;font-size:12px;color:var(--warm);margin-bottom:5px;}
@@ -94,17 +94,57 @@
   .field-row .field{flex:1;}
   .checkbox-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
   .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;}
+  .sub-label{font-size:12px;color:var(--warm);margin:18px 0 8px;}
 
-  .weekly-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;}
+  /* per-employee pay rows in the entry modal */
+  .pay-row{display:grid;grid-template-columns:22px 1fr 116px;align-items:center;gap:10px;margin-bottom:8px;}
+  .pay-row .name{font-size:14px;}
+  .pay-row input[type=number]{width:100%;border:1px solid var(--border-muted);border-radius:var(--radius-input);padding:7px 10px;font-family:var(--font-body);font-size:14px;}
+  .pay-row input[type=number]:disabled{background:#f5f5f4;color:var(--ash);}
+  .salary-preview{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--border);margin-top:12px;padding-top:12px;font-size:13px;color:var(--warm);}
+  .salary-preview strong{font-family:var(--font-display);font-size:18px;color:var(--ink);font-weight:400;}
+
+  .weekly-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;}
   .weekly-item{border:1px solid var(--border);border-radius:var(--radius-card);padding:16px;}
+  .weekly-item.current{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan);}
   .weekly-item .wk-label{font-size:12px;color:var(--ash);margin-bottom:6px;}
-  .weekly-item .wk-value{font-family:var(--font-display);font-size:20px;}
+  .weekly-item .wk-value{font-family:var(--font-display);font-size:20px;font-variant-numeric:tabular-nums;}
+  .wk-tag{display:inline-block;font-size:10px;color:var(--cyan-edge);background:var(--sky);border-radius:var(--radius-pill);padding:1px 8px;margin-left:6px;}
+
+  /* report controls */
+  .report-controls{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;}
+  .report-controls .field{margin-bottom:0;min-width:150px;}
+  .report-hint{color:var(--ash);font-size:12px;margin-top:12px;}
+
+  /* people */
+  .person-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+  .person-row:last-child{border-bottom:none;}
+  .person-name{font-size:14px;}
+  .person-meta{font-size:12px;color:var(--ash);}
+  .archived .person-name{color:var(--ash);text-decoration:line-through;}
 
   @media (max-width:900px){
     .nav{flex-direction:column;align-items:flex-start;gap:14px;padding-bottom:28px;}
     .nav-right{justify-content:flex-start;}
     .stat-grid{grid-template-columns:repeat(2,1fr);}
-    table{display:block;overflow-x:auto;}
+  }
+
+  /* ---- print / save as PDF ---- */
+  #printArea{display:none;}
+  @media print{
+    .wrap, .overlay{display:none !important;}
+    #printArea{display:block;}
+    @page{margin:14mm;}
+    body{background:#fff;color:#000;font-size:11px;}
+    #printArea h1{font-family:var(--font-display);font-size:19px;margin:0 0 2px;}
+    #printArea .rpt-sub{color:#555;font-size:11px;margin-bottom:16px;}
+    #printArea h2{font-family:var(--font-display);font-size:13px;font-weight:500;margin:18px 0 6px;}
+    #printArea table{width:100%;border-collapse:collapse;font-size:10.5px;}
+    #printArea th{text-align:left;border-bottom:1px solid #000;padding:5px 6px;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;}
+    #printArea td{border-bottom:1px solid #ddd;padding:5px 6px;font-variant-numeric:tabular-nums;}
+    #printArea tr.total td{border-top:1px solid #000;border-bottom:none;font-weight:600;}
+    #printArea .rpt-foot{margin-top:22px;color:#777;font-size:9.5px;border-top:1px solid #ddd;padding-top:8px;}
+    #printArea .num{text-align:right;}
   }
 </style>
 </head>
@@ -148,16 +188,13 @@
       <div class="label">Net income</div>
       <div class="value" id="statNet">₱0.00</div>
     </div>
-    <div class="stat-card">
-      <div class="label">Money on hand</div>
-      <input id="statCash" type="text" inputmode="decimal" value="0">
-    </div>
   </div>
 
   <div class="tabs">
     <button class="tab active" data-tab="overview">Overview</button>
     <button class="tab" data-tab="sales">Sales log</button>
     <button class="tab" data-tab="expenses">Expenses</button>
+    <button class="tab" data-tab="people">People</button>
   </div>
 
   <!-- OVERVIEW -->
@@ -165,6 +202,25 @@
     <div class="card">
       <div class="card-head"><h3>Weekly breakdown</h3></div>
       <div class="weekly-grid" id="weeklyGrid"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>Export a report</h3></div>
+      <div class="report-controls">
+        <div class="field">
+          <label for="rptScope">Period</label>
+          <select id="rptScope">
+            <option value="day">Single day</option>
+            <option value="week">Week</option>
+            <option value="month" selected>Month</option>
+          </select>
+        </div>
+        <div class="field" id="rptDateField">
+          <label for="rptDate">Date in that period</label>
+          <input type="date" id="rptDate">
+        </div>
+        <button class="btn btn-primary" id="rptBtn">Export PDF</button>
+      </div>
+      <p class="report-hint">Opens your browser's print dialog — choose <strong>Save as PDF</strong> as the destination.</p>
     </div>
   </div>
 
@@ -175,15 +231,12 @@
         <h3>Sales log</h3>
         <button class="btn btn-primary" id="addEntryBtn">Add entry</button>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th><th>Team sales</th><th>Employee</th><th>Ali</th><th>Justine</th>
-            <th>Incentive/OT</th><th>Salary</th><th>Status</th><th>Remarks</th><th></th>
-          </tr>
-        </thead>
-        <tbody id="entriesBody"></tbody>
-      </table>
+      <div class="table-scroll">
+        <table>
+          <thead><tr id="entriesHead"></tr></thead>
+          <tbody id="entriesBody"></tbody>
+        </table>
+      </div>
       <div class="empty" id="entriesEmpty" style="display:none;">No entries yet — add your first sales day.</div>
     </div>
   </div>
@@ -195,11 +248,25 @@
         <h3>Expenses</h3>
         <button class="btn btn-primary" id="addExpenseBtn">Add expense</button>
       </div>
-      <table>
-        <thead><tr><th>Item</th><th>Amount</th><th>Status</th><th></th></tr></thead>
-        <tbody id="expensesBody"></tbody>
-      </table>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Item</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+          <tbody id="expensesBody"></tbody>
+        </table>
+      </div>
       <div class="empty" id="expensesEmpty" style="display:none;">No expenses logged yet.</div>
+    </div>
+  </div>
+
+  <!-- PEOPLE -->
+  <div class="section" id="tab-people">
+    <div class="card">
+      <div class="card-head">
+        <h3>People</h3>
+        <button class="btn btn-primary" id="addPersonBtn">Add person</button>
+      </div>
+      <div id="peopleList"></div>
+      <div class="empty" id="peopleEmpty" style="display:none;">No one added yet.</div>
     </div>
   </div>
 
@@ -211,27 +278,19 @@
     <h3 id="entryModalTitle">Add sales entry</h3>
     <input type="hidden" id="entryId">
     <div class="field-row">
-      <div class="field"><label>Date</label><input type="date" id="fDate"></div>
-      <div class="field"><label>Team sales (₱)</label><input type="number" id="fTeamSales" placeholder="0"></div>
+      <div class="field"><label for="fDate">Date</label><input type="date" id="fDate"></div>
+      <div class="field"><label for="fTeamSales">Team sales (₱)</label><input type="number" id="fTeamSales" placeholder="0"></div>
     </div>
-    <div class="field"><label>Employee working</label>
-      <select id="fEmployee">
-        <option value="">Closed</option>
-        <option value="Justine">Justine</option>
-        <option value="Ali">Ali</option>
-        <option value="Justine & Ali">Justine &amp; Ali</option>
-      </select>
-    </div>
-    <div class="field-row">
-      <div class="field"><label>Ali (₱)</label><input type="number" id="fAli" placeholder="0"></div>
-      <div class="field"><label>Justine (₱)</label><input type="number" id="fJustine" placeholder="0"></div>
-    </div>
-    <div class="field-row">
-      <div class="field"><label>Incentive / OT (₱)</label><input type="number" id="fIncentive" placeholder="0"></div>
-      <div class="field"><label>Salary (₱)</label><input type="number" id="fSalary" placeholder="0"></div>
-    </div>
+
+    <div class="sub-label">Who worked, and what they are owed</div>
+    <div id="payRows"></div>
+
+    <div class="field" style="margin-top:14px;"><label for="fIncentive">Incentive / OT (₱)</label><input type="number" id="fIncentive" placeholder="0"></div>
     <div class="checkbox-row"><input type="checkbox" id="fPaid"><label for="fPaid">Salary paid</label></div>
-    <div class="field"><label>Remarks</label><input type="text" id="fRemarks" placeholder="e.g. halfday, closed"></div>
+    <div class="field"><label for="fRemarks">Remarks</label><input type="text" id="fRemarks" placeholder="e.g. halfday, closed"></div>
+
+    <div class="salary-preview"><span>Total salary for the day</span><strong id="salaryPreview">₱0.00</strong></div>
+
     <div class="modal-actions">
       <button class="btn btn-ghost" id="entryCancel">Cancel</button>
       <button class="btn btn-primary" id="entrySave">Save entry</button>
@@ -244,8 +303,8 @@
   <div class="modal">
     <h3 id="expenseModalTitle">Add expense</h3>
     <input type="hidden" id="eId">
-    <div class="field"><label>Item</label><input type="text" id="eName" placeholder="e.g. rent, internet"></div>
-    <div class="field"><label>Amount (₱)</label><input type="number" id="eAmount" placeholder="0"></div>
+    <div class="field"><label for="eName">Item</label><input type="text" id="eName" placeholder="e.g. rent, internet"></div>
+    <div class="field"><label for="eAmount">Amount (₱)</label><input type="number" id="eAmount" placeholder="0"></div>
     <div class="checkbox-row"><input type="checkbox" id="ePaid"><label for="ePaid">Paid</label></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" id="expenseCancel">Cancel</button>
@@ -254,48 +313,124 @@
   </div>
 </div>
 
+<!-- Person modal -->
+<div class="overlay" id="personOverlay">
+  <div class="modal">
+    <h3 id="personModalTitle">Add person</h3>
+    <input type="hidden" id="pId">
+    <div class="field"><label for="pName">Name</label><input type="text" id="pName" placeholder="e.g. Marco"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="personCancel">Cancel</button>
+      <button class="btn btn-primary" id="personSave">Save person</button>
+    </div>
+  </div>
+</div>
+
+<div id="printArea"></div>
+
 <script>
 const peso = n => '₱' + (Number(n)||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
 const STORE_KEY = 'ledger-data-v1';
-
-let state = {
-  cash: -1387,
-  entries: [
-    {id:'1',date:'2026-08-03',teamSales:1121,employee:'Justine',ali:0,justine:450,incentive:0,salary:450,paid:true,remarks:''},
-    {id:'2',date:'2026-08-04',teamSales:811,employee:'Justine',ali:0,justine:450,incentive:0,salary:450,paid:true,remarks:''},
-    {id:'3',date:'2026-08-05',teamSales:1091,employee:'Justine & Ali',ali:250,justine:225,incentive:0,salary:475,paid:true,remarks:'J paid'},
-    {id:'4',date:'2026-08-06',teamSales:531,employee:'Ali',ali:250,justine:0,incentive:0,salary:250,paid:true,remarks:'halfday'},
-    {id:'5',date:'2026-08-07',teamSales:242,employee:'Ali',ali:250,justine:0,incentive:0,salary:250,paid:false,remarks:'halfday'},
-    {id:'6',date:'2026-08-10',teamSales:0,employee:'',ali:0,justine:0,incentive:0,salary:0,paid:false,remarks:'closed'},
-    {id:'7',date:'2026-08-11',teamSales:0,employee:'',ali:0,justine:0,incentive:0,salary:0,paid:false,remarks:'closed'},
-    {id:'8',date:'2026-08-12',teamSales:1139,employee:'Justine',ali:0,justine:450,incentive:0,salary:450,paid:false,remarks:''},
-    {id:'9',date:'2026-08-13',teamSales:758,employee:'Ali',ali:400,justine:0,incentive:0,salary:400,paid:true,remarks:''},
-    {id:'10',date:'2026-08-14',teamSales:1017,employee:'Justine',ali:0,justine:450,incentive:0,salary:450,paid:false,remarks:''},
-    {id:'11',date:'2026-08-17',teamSales:748,employee:'Justine',ali:0,justine:400,incentive:0,salary:400,paid:true,remarks:''},
-    {id:'12',date:'2026-08-18',teamSales:1448,employee:'Justine',ali:0,justine:450,incentive:0,salary:450,paid:true,remarks:''},
-    {id:'13',date:'2026-08-19',teamSales:376,employee:'Justine',ali:0,justine:200,incentive:0,salary:200,paid:true,remarks:'halfday'},
-    {id:'14',date:'2026-08-20',teamSales:0,employee:'',ali:0,justine:0,incentive:0,salary:0,paid:false,remarks:'closed'},
-    {id:'15',date:'2026-08-21',teamSales:0,employee:'',ali:0,justine:0,incentive:0,salary:0,paid:false,remarks:'closed'},
-    {id:'16',date:'2026-08-24',teamSales:1859,employee:'Justine',ali:0,justine:500,incentive:150,salary:650,paid:true,remarks:''},
-    {id:'17',date:'2026-08-25',teamSales:1048,employee:'Ali',ali:500,justine:0,incentive:0,salary:500,paid:true,remarks:''},
-    {id:'18',date:'2026-08-26',teamSales:1030,employee:'Justine',ali:0,justine:450,incentive:0,salary:450,paid:false,remarks:''},
-    {id:'19',date:'2026-08-27',teamSales:1137,employee:'Ali',ali:0,justine:450,incentive:0,salary:450,paid:false,remarks:''},
-    {id:'20',date:'2026-08-28',teamSales:711,employee:'',ali:0,justine:0,incentive:0,salary:0,paid:false,remarks:''},
-  ],
-  expenses: [
-    {id:'e1',name:'Rent',amount:11000,paid:true},
-    {id:'e2',name:'Water',amount:0,paid:false},
-    {id:'e3',name:'Electricity',amount:0,paid:false},
-    {id:'e4',name:'Internet',amount:1299,paid:true},
-    {id:'e5',name:'Pizza',amount:95,paid:true},
-    {id:'e6',name:'Accounting',amount:3000,paid:true},
-  ]
-};
 
 function uid(prefix){
   return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 }
 
+const ALI = 'emp-ali', JUS = 'emp-justine';
+
+let state = {
+  employees: [ {id:ALI, name:'Ali'}, {id:JUS, name:'Justine'} ],
+  entries: [
+    {id:'1', date:'2026-08-03', teamSales:1121, pay:{[JUS]:450}, incentive:0, paid:true,  remarks:''},
+    {id:'2', date:'2026-08-04', teamSales:811,  pay:{[JUS]:450}, incentive:0, paid:true,  remarks:''},
+    {id:'3', date:'2026-08-05', teamSales:1091, pay:{[ALI]:250,[JUS]:225}, incentive:0, paid:true, remarks:'J paid'},
+    {id:'4', date:'2026-08-06', teamSales:531,  pay:{[ALI]:250}, incentive:0, paid:true,  remarks:'halfday'},
+    {id:'5', date:'2026-08-07', teamSales:242,  pay:{[ALI]:250}, incentive:0, paid:false, remarks:'halfday'},
+    {id:'6', date:'2026-08-10', teamSales:0,    pay:{},          incentive:0, paid:false, remarks:'closed'},
+    {id:'7', date:'2026-08-11', teamSales:0,    pay:{},          incentive:0, paid:false, remarks:'closed'},
+    {id:'8', date:'2026-08-12', teamSales:1139, pay:{[JUS]:450}, incentive:0, paid:false, remarks:''},
+    {id:'9', date:'2026-08-13', teamSales:758,  pay:{[ALI]:400}, incentive:0, paid:true,  remarks:''},
+    {id:'10',date:'2026-08-14', teamSales:1017, pay:{[JUS]:450}, incentive:0, paid:false, remarks:''},
+    {id:'11',date:'2026-08-17', teamSales:748,  pay:{[JUS]:400}, incentive:0, paid:true,  remarks:''},
+    {id:'12',date:'2026-08-18', teamSales:1448, pay:{[JUS]:450}, incentive:0, paid:true,  remarks:''},
+    {id:'13',date:'2026-08-19', teamSales:376,  pay:{[JUS]:200}, incentive:0, paid:true,  remarks:'halfday'},
+    {id:'14',date:'2026-08-20', teamSales:0,    pay:{},          incentive:0, paid:false, remarks:'closed'},
+    {id:'15',date:'2026-08-21', teamSales:0,    pay:{},          incentive:0, paid:false, remarks:'closed'},
+    {id:'16',date:'2026-08-24', teamSales:1859, pay:{[JUS]:500}, incentive:150, paid:true, remarks:''},
+    {id:'17',date:'2026-08-25', teamSales:1048, pay:{[ALI]:500}, incentive:0, paid:true,  remarks:''},
+    {id:'18',date:'2026-08-26', teamSales:1030, pay:{[JUS]:450}, incentive:0, paid:false, remarks:''},
+    {id:'19',date:'2026-08-27', teamSales:1137, pay:{[ALI]:0,[JUS]:450}, incentive:0, paid:false, remarks:''},
+    {id:'20',date:'2026-08-28', teamSales:711,  pay:{},          incentive:0, paid:false, remarks:''}
+  ],
+  expenses: [
+    {id:'e1', month:'2026-08', name:'Rent',       amount:11000, paid:true},
+    {id:'e2', month:'2026-08', name:'Water',      amount:0,     paid:false},
+    {id:'e3', month:'2026-08', name:'Electricity',amount:0,     paid:false},
+    {id:'e4', month:'2026-08', name:'Internet',   amount:1299,  paid:true},
+    {id:'e5', month:'2026-08', name:'Pizza',      amount:95,    paid:true},
+    {id:'e6', month:'2026-08', name:'Accounting', amount:3000,  paid:true}
+  ]
+};
+
+/* ---------- dates ---------- */
+function iso(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function today(){ return iso(new Date()); }
+function monthKey(dateStr){ return (dateStr||'').slice(0,7); }
+function thisMonthKey(){ return today().slice(0,7); }
+function monthName(key){
+  const p = key.split('-');
+  return new Date(Number(p[0]), Number(p[1])-1, 1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+}
+function fmtDate(dateStr){
+  return new Date(dateStr+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+function fmtLongDate(dateStr){
+  return new Date(dateStr+'T00:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+}
+// Monday-start calendar week. Real weeks, so a new week begins on its own.
+function weekStart(dateStr){
+  const d = new Date(dateStr+'T00:00:00');
+  d.setDate(d.getDate() - ((d.getDay()+6)%7));
+  return iso(d);
+}
+function weekEnd(startStr){
+  const d = new Date(startStr+'T00:00:00');
+  d.setDate(d.getDate()+6);
+  return iso(d);
+}
+function weekLabel(startStr){
+  return fmtDate(startStr) + ' – ' + fmtDate(weekEnd(startStr));
+}
+
+/* ---------- employees ---------- */
+function empById(id){ return state.employees.find(e=>e.id===id); }
+function empName(id){ const e = empById(id); return e ? e.name : 'Removed'; }
+function activeEmployees(){ return state.employees.filter(e=>!e.archived); }
+function employeeHasHistory(id){ return state.entries.some(e=>e.pay && id in e.pay); }
+// Columns worth showing: everyone active, plus archived people who still have data here.
+function columnEmployees(entries){
+  const used = new Set();
+  entries.forEach(e=>Object.keys(e.pay||{}).forEach(id=>used.add(id)));
+  const cols = activeEmployees().slice();
+  state.employees.forEach(e=>{ if(e.archived && used.has(e.id)) cols.push(e); });
+  used.forEach(id=>{ if(!empById(id)) cols.push({id, name:'Removed'}); });
+  return cols;
+}
+
+/* ---------- derived ---------- */
+function payTotal(entry){
+  return Object.values(entry.pay||{}).reduce((s,v)=>s+Number(v||0),0);
+}
+function salaryOf(entry){ return payTotal(entry) + Number(entry.incentive||0); }
+function isClosed(entry){
+  return Object.keys(entry.pay||{}).length===0
+      && Number(entry.teamSales)===0
+      && (entry.remarks||'').toLowerCase().includes('closed');
+}
+
+/* ---------- storage ---------- */
 function loadState(){
   try{
     const raw = localStorage.getItem(STORE_KEY);
@@ -308,34 +443,53 @@ function saveState(){
   try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
   catch(e){
     console.error('save failed', e);
-    alert('Could not save \u2014 browser storage is full or blocked.');
+    alert('Could not save — browser storage is full or blocked.');
   }
 }
 function migrate(){
-  state.entries.forEach(e=>{ if(!e.id) e.id = uid('s'); });
-  state.expenses.forEach(e=>{ if(!e.id) e.id = uid('x'); if(!e.month) e.month = '2026-08'; });
-  const months = monthsAvailable();
-  if(!state.month || months.indexOf(state.month) === -1) state.month = defaultMonth(months);
+  if(!Array.isArray(state.employees) || state.employees.length===0){
+    state.employees = [{id:ALI, name:'Ali'}, {id:JUS, name:'Justine'}];
+  }
+  delete state.cash; // "Money on hand" was removed
+
+  const byName = {};
+  state.employees.forEach(e=>{ byName[e.name.trim().toLowerCase()] = e.id; });
+  const ensure = name => {
+    const key = name.trim().toLowerCase();
+    if(!key) return null;
+    if(!byName[key]){
+      const person = {id: uid('emp-'), name: name.trim()};
+      state.employees.push(person);
+      byName[key] = person.id;
+    }
+    return byName[key];
+  };
+
+  state.entries = state.entries.map(e=>{
+    if(!e.id) e.id = uid('s');
+    if(e.pay) return e;                       // already migrated
+    // Old shape: fixed ali/justine columns plus an "employee" string.
+    const pay = {};
+    if(Number(e.ali))     pay[ensure('Ali')] = Number(e.ali);
+    if(Number(e.justine)) pay[ensure('Justine')] = Number(e.justine);
+    (e.employee||'').split('&').forEach(part=>{
+      const id = ensure(part);
+      if(id && !(id in pay)) pay[id] = 0;
+    });
+    return {id:e.id, date:e.date, teamSales:Number(e.teamSales||0), pay,
+            incentive:Number(e.incentive||0), paid:!!e.paid, remarks:e.remarks||''};
+  });
+
+  state.expenses.forEach(e=>{
+    if(!e.id) e.id = uid('x');
+    if(!e.month) e.month = '2026-08';
+  });
+
+  // Always open on the current month, so a new month starts clean on its own.
+  state.month = thisMonthKey();
 }
 
-function weekOf(dateStr){
-  const day = parseInt(dateStr.split('-')[2],10);
-  return Math.ceil(day/7);
-}
-function fmtDate(dateStr){
-  const d = new Date(dateStr+'T00:00:00');
-  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-}
-function monthKey(dateStr){ return (dateStr||'').slice(0,7); }
-function monthName(key){
-  const parts = key.split('-');
-  return new Date(Number(parts[0]), Number(parts[1])-1, 1)
-    .toLocaleDateString('en-US',{month:'long',year:'numeric'});
-}
-function thisMonthKey(){
-  const n = new Date();
-  return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');
-}
+/* ---------- scoping ---------- */
 function monthsAvailable(){
   const set = new Set();
   state.entries.forEach(e=>{ const k = monthKey(e.date); if(k) set.add(k); });
@@ -343,133 +497,138 @@ function monthsAvailable(){
   set.add(thisMonthKey());
   return [...set].sort().reverse();
 }
-function defaultMonth(months){
-  // Prefer the most recent month that actually holds entries; otherwise the current month.
-  const withData = months.filter(m=>state.entries.some(e=>monthKey(e.date)===m));
-  return withData[0] || months[0];
-}
 function visibleEntries(){ return state.entries.filter(e=>monthKey(e.date)===state.month); }
 function visibleExpenses(){ return state.expenses.filter(e=>e.month===state.month); }
 
-function computeTotals(){
-  const ent = visibleEntries(), exp = visibleExpenses();
-  const totalSales = ent.reduce((s,e)=>s+Number(e.teamSales||0),0);
-  const totalSalaries = ent.reduce((s,e)=>s+Number(e.salary||0),0);
-  const totalExpenses = exp.reduce((s,e)=>s+Number(e.amount||0),0);
-  const net = totalSales - totalSalaries - totalExpenses;
-  return {totalSales, totalSalaries, totalExpenses, net};
+function computeTotals(entries, expenses){
+  const totalSales    = entries.reduce((s,e)=>s+Number(e.teamSales||0),0);
+  const totalSalaries = entries.reduce((s,e)=>s+salaryOf(e),0);
+  const totalExpenses = expenses.reduce((s,e)=>s+Number(e.amount||0),0);
+  return {totalSales, totalSalaries, totalExpenses, net: totalSales-totalSalaries-totalExpenses};
 }
-
-function computeWeeks(){
+function computeWeeks(entries){
   const weeks = {};
-  visibleEntries().forEach(e=>{
-    const w = weekOf(e.date);
+  entries.forEach(e=>{
+    const w = weekStart(e.date);
     if(!weeks[w]) weeks[w] = {sales:0, salary:0, entries:[]};
-    weeks[w].sales += Number(e.teamSales||0);
-    weeks[w].salary += Number(e.salary||0);
+    weeks[w].sales  += Number(e.teamSales||0);
+    weeks[w].salary += salaryOf(e);
     weeks[w].entries.push(e);
   });
   return weeks;
 }
 
+/* ---------- render ---------- */
 function renderMonthSelect(){
   const sel = document.getElementById('monthLabel');
-  const months = monthsAvailable();
-  sel.innerHTML = months.map(m=>`<option value="${m}">${monthName(m)}</option>`).join('');
+  sel.innerHTML = monthsAvailable().map(m=>`<option value="${m}">${monthName(m)}</option>`).join('');
   sel.value = state.month;
 }
 
 function render(){
   renderMonthSelect();
-  document.getElementById('statCash').value = state.cash;
-  const t = computeTotals();
-  document.getElementById('statSales').textContent = peso(t.totalSales);
+  const t = computeTotals(visibleEntries(), visibleExpenses());
+  document.getElementById('statSales').textContent    = peso(t.totalSales);
   document.getElementById('statSalaries').textContent = peso(t.totalSalaries);
   document.getElementById('statExpenses').textContent = peso(t.totalExpenses);
   const netEl = document.getElementById('statNet');
   netEl.textContent = peso(t.net);
-  netEl.className = 'value' + (t.net<0?' neg':'');
+  netEl.className = 'value' + (t.net<0 ? ' neg' : '');
 
   renderEntries();
   renderExpenses();
   renderWeekly();
+  renderPeople();
 }
 
 function renderEntries(){
+  const entries = visibleEntries();
+  const cols = columnEmployees(entries);
+  const head = document.getElementById('entriesHead');
+  head.innerHTML = '<th>Date</th><th>Team sales</th>'
+    + cols.map(c=>`<th>${escapeHtml(c.name)}</th>`).join('')
+    + '<th>Incentive/OT</th><th>Salary</th><th>Status</th><th>Remarks</th><th></th>';
+
   const body = document.getElementById('entriesBody');
-  const sorted = [...visibleEntries()].sort((a,b)=>a.date.localeCompare(b.date));
+  const sorted = [...entries].sort((a,b)=>a.date.localeCompare(b.date));
   body.innerHTML = '';
   if(sorted.length===0){ document.getElementById('entriesEmpty').style.display='block'; return; }
   document.getElementById('entriesEmpty').style.display='none';
 
+  const weeks = computeWeeks(entries);
+  const totalCols = 2 + cols.length + 6;
   let currentWeek = null;
-  const weeks = computeWeeks();
 
   sorted.forEach(e=>{
-    const w = weekOf(e.date);
+    const w = weekStart(e.date);
     if(w !== currentWeek){
-      if(currentWeek !== null){
-        appendWeekSummaryRows(body, currentWeek, weeks[currentWeek]);
-      }
+      if(currentWeek !== null) appendWeekRow(body, currentWeek, weeks[currentWeek], totalCols, cols.length);
       currentWeek = w;
     }
-    const tr = document.createElement('tr');
-    const closed = !e.employee && Number(e.teamSales)===0 && (e.remarks||'').toLowerCase().includes('closed');
-    const statusPill = closed
+    const statusPill = isClosed(e)
       ? '<span class="pill-status pill-closed">Closed</span>'
-      : (e.salary>0 ? `<span class="pill-status ${e.paid?'pill-paid':'pill-unpaid'}">${e.paid?'Paid':'Unpaid'}</span>` : '');
+      : (salaryOf(e)>0 ? `<span class="pill-status ${e.paid?'pill-paid':'pill-unpaid'}">${e.paid?'Paid':'Unpaid'}</span>` : '');
+    const payCells = cols.map(c=>{
+      const has = e.pay && (c.id in e.pay);
+      if(!has) return '<td>—</td>';
+      return `<td>${peso(e.pay[c.id])}</td>`;
+    }).join('');
+    const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${fmtDate(e.date)}</td>
       <td>${peso(e.teamSales)}</td>
-      <td>${e.employee||'—'}</td>
-      <td>${e.ali?peso(e.ali):'—'}</td>
-      <td>${e.justine?peso(e.justine):'—'}</td>
+      ${payCells}
       <td>${e.incentive?peso(e.incentive):'—'}</td>
-      <td>${peso(e.salary)}</td>
+      <td>${peso(salaryOf(e))}</td>
       <td>${statusPill}</td>
-      <td>${e.remarks||''}</td>
+      <td>${escapeHtml(e.remarks||'')}</td>
       <td><div class="row-actions">
-        <button class="icon-btn" data-edit="${e.id}" title="Edit">✎</button>
-        <button class="icon-btn" data-del="${e.id}" title="Delete">✕</button>
+        <button class="icon-btn" data-edit="${e.id}" title="Edit" aria-label="Edit entry">✎</button>
+        <button class="icon-btn" data-del="${e.id}" title="Delete" aria-label="Delete entry">✕</button>
       </div></td>`;
     body.appendChild(tr);
   });
-  if(currentWeek !== null) appendWeekSummaryRows(body, currentWeek, weeks[currentWeek]);
+  if(currentWeek !== null) appendWeekRow(body, currentWeek, weeks[currentWeek], totalCols, cols.length);
 
   body.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>openEntryModal(b.dataset.edit)));
   body.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{
+    if(!confirm('Delete this entry?')) return;
     state.entries = state.entries.filter(x=>x.id!==b.dataset.del);
     saveState(); render();
   }));
 }
 
-function appendWeekSummaryRows(body, weekNum, data){
-  const tr1 = document.createElement('tr');
-  tr1.className = 'week-row';
-  tr1.innerHTML = `<td colspan="6">Week ${weekNum} total</td><td>${peso(data.salary)}</td><td colspan="3"></td>`;
-  body.appendChild(tr1);
+function appendWeekRow(body, wkStart, data, totalCols, payColCount){
+  const tr = document.createElement('tr');
+  tr.className = 'week-row';
+  const lead = 2 + payColCount + 1;           // date + sales + pay cols + incentive
+  tr.innerHTML = `<td colspan="${lead}">Week of ${weekLabel(wkStart)} · sales ${peso(data.sales)}</td>`
+               + `<td>${peso(data.salary)}</td>`
+               + `<td colspan="${totalCols-lead-1}"></td>`;
+  body.appendChild(tr);
 }
 
 function renderExpenses(){
-  const body = document.getElementById('expensesBody');
   const list = visibleExpenses();
+  const body = document.getElementById('expensesBody');
   body.innerHTML = '';
   if(list.length===0){ document.getElementById('expensesEmpty').style.display='block'; return; }
   document.getElementById('expensesEmpty').style.display='none';
   list.forEach(e=>{
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${e.name}</td>
+      <td>${escapeHtml(e.name)}</td>
       <td>${peso(e.amount)}</td>
       <td><span class="pill-status ${e.paid?'pill-paid':'pill-unpaid'}">${e.paid?'Paid':'Unpaid'}</span></td>
       <td><div class="row-actions">
-        <button class="icon-btn" data-eedit="${e.id}" title="Edit">✎</button>
-        <button class="icon-btn" data-edel="${e.id}" title="Delete">✕</button>
+        <button class="icon-btn" data-eedit="${e.id}" title="Edit" aria-label="Edit expense">✎</button>
+        <button class="icon-btn" data-edel="${e.id}" title="Delete" aria-label="Delete expense">✕</button>
       </div></td>`;
     body.appendChild(tr);
   });
   body.querySelectorAll('[data-eedit]').forEach(b=>b.addEventListener('click',()=>openExpenseModal(b.dataset.eedit)));
   body.querySelectorAll('[data-edel]').forEach(b=>b.addEventListener('click',()=>{
+    if(!confirm('Delete this expense?')) return;
     state.expenses = state.expenses.filter(x=>x.id!==b.dataset.edel);
     saveState(); render();
   }));
@@ -477,24 +636,71 @@ function renderExpenses(){
 
 function renderWeekly(){
   const grid = document.getElementById('weeklyGrid');
-  const weeks = computeWeeks();
+  const weeks = computeWeeks(visibleEntries());
+  const currentWk = weekStart(today());
   grid.innerHTML = '';
-  Object.keys(weeks).sort((a,b)=>a-b).forEach(w=>{
+  const keys = Object.keys(weeks).sort();
+  keys.forEach(w=>{
     const d = weeks[w];
     const net = d.sales - d.salary;
     const div = document.createElement('div');
-    div.className = 'weekly-item';
+    div.className = 'weekly-item' + (w===currentWk ? ' current' : '');
     div.innerHTML = `
-      <div class="wk-label">Week ${w} · sales ${peso(d.sales)} · salary ${peso(d.salary)}</div>
-      <div class="wk-value" style="color:${net<0?'#b3413a':'#0c0a09'}">${peso(net)}</div>`;
+      <div class="wk-label">${weekLabel(w)}${w===currentWk?'<span class="wk-tag">This week</span>':''}</div>
+      <div class="wk-value" style="color:${net<0?'#b3413a':'#0c0a09'}">${peso(net)}</div>
+      <div class="wk-label" style="margin:6px 0 0;">sales ${peso(d.sales)} · salary ${peso(d.salary)}</div>`;
     grid.appendChild(div);
   });
-  if(Object.keys(weeks).length===0){
+  if(keys.length===0){
     grid.innerHTML = '<div class="empty">Add sales entries to see weekly totals.</div>';
   }
 }
 
-/* Tabs */
+function renderPeople(){
+  const box = document.getElementById('peopleList');
+  box.innerHTML = '';
+  if(state.employees.length===0){ document.getElementById('peopleEmpty').style.display='block'; return; }
+  document.getElementById('peopleEmpty').style.display='none';
+  state.employees.forEach(p=>{
+    const days = state.entries.filter(e=>e.pay && p.id in e.pay).length;
+    const paid = state.entries.reduce((s,e)=>s + Number((e.pay||{})[p.id] || 0), 0);
+    const row = document.createElement('div');
+    row.className = 'person-row' + (p.archived ? ' archived' : '');
+    row.innerHTML = `
+      <div>
+        <div class="person-name">${escapeHtml(p.name)}${p.archived?' <span class="pill-status pill-closed">Archived</span>':''}</div>
+        <div class="person-meta">${days} day${days===1?'':'s'} logged · ${peso(paid)} total</div>
+      </div>
+      <div class="row-actions">
+        <button class="icon-btn" data-pedit="${p.id}" title="Rename" aria-label="Rename person">✎</button>
+        <button class="icon-btn" data-parch="${p.id}" title="${p.archived?'Restore':'Archive'}" aria-label="Archive person">${p.archived?'↩':'⌫'}</button>
+        <button class="icon-btn" data-pdel="${p.id}" title="Delete" aria-label="Delete person">✕</button>
+      </div>`;
+    box.appendChild(row);
+  });
+  box.querySelectorAll('[data-pedit]').forEach(b=>b.addEventListener('click',()=>openPersonModal(b.dataset.pedit)));
+  box.querySelectorAll('[data-parch]').forEach(b=>b.addEventListener('click',()=>{
+    const p = empById(b.dataset.parch);
+    p.archived = !p.archived;
+    saveState(); render();
+  }));
+  box.querySelectorAll('[data-pdel]').forEach(b=>b.addEventListener('click',()=>{
+    const id = b.dataset.pdel;
+    if(employeeHasHistory(id)){
+      alert(empName(id)+' has entries in the sales log, so deleting would leave those days without a name.\n\nArchive them instead — they stay out of new entries but their history is kept.');
+      return;
+    }
+    if(!confirm('Remove '+empName(id)+'?')) return;
+    state.employees = state.employees.filter(p=>p.id!==id);
+    saveState(); render();
+  }));
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------- tabs ---------- */
 document.querySelectorAll('.tab').forEach(tab=>{
   tab.addEventListener('click',()=>{
     document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -504,8 +710,59 @@ document.querySelectorAll('.tab').forEach(tab=>{
   });
 });
 
-/* Entry modal */
+/* ---------- entry modal ---------- */
 const entryOverlay = document.getElementById('entryOverlay');
+
+function renderPayRows(pay){
+  const box = document.getElementById('payRows');
+  const people = activeEmployees().slice();
+  // Include archived people who are already on this entry, so editing keeps them.
+  Object.keys(pay||{}).forEach(id=>{
+    if(!people.some(p=>p.id===id)){
+      const p = empById(id);
+      if(p) people.push(p);
+    }
+  });
+  if(people.length===0){
+    box.innerHTML = '<div class="person-meta">No one added yet — use the People tab to add someone.</div>';
+    return;
+  }
+  box.innerHTML = people.map(p=>{
+    const on = pay && (p.id in pay);
+    return `<div class="pay-row">
+      <input type="checkbox" data-worked="${p.id}" ${on?'checked':''} aria-label="${escapeHtml(p.name)} worked">
+      <span class="name">${escapeHtml(p.name)}</span>
+      <input type="number" data-amount="${p.id}" placeholder="0" value="${on?pay[p.id]:''}" ${on?'':'disabled'}>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('[data-worked]').forEach(cb=>{
+    cb.addEventListener('change',()=>{
+      const amt = box.querySelector(`[data-amount="${cb.dataset.worked}"]`);
+      amt.disabled = !cb.checked;
+      if(!cb.checked) amt.value = '';
+      updateSalaryPreview();
+    });
+  });
+  box.querySelectorAll('[data-amount]').forEach(i=>i.addEventListener('input', updateSalaryPreview));
+}
+
+function collectPay(){
+  const pay = {};
+  document.querySelectorAll('[data-worked]').forEach(cb=>{
+    if(cb.checked){
+      const amt = document.querySelector(`[data-amount="${cb.dataset.worked}"]`);
+      pay[cb.dataset.worked] = Number(amt.value)||0;
+    }
+  });
+  return pay;
+}
+function updateSalaryPreview(){
+  const total = Object.values(collectPay()).reduce((s,v)=>s+v,0)
+              + (Number(document.getElementById('fIncentive').value)||0);
+  document.getElementById('salaryPreview').textContent = peso(total);
+}
+document.getElementById('fIncentive').addEventListener('input', updateSalaryPreview);
+
 function openEntryModal(id){
   document.getElementById('entryModalTitle').textContent = id ? 'Edit sales entry' : 'Add sales entry';
   document.getElementById('entryId').value = id || '';
@@ -513,18 +770,17 @@ function openEntryModal(id){
     const e = state.entries.find(x=>x.id===id);
     document.getElementById('fDate').value = e.date;
     document.getElementById('fTeamSales').value = e.teamSales;
-    document.getElementById('fEmployee').value = e.employee;
-    document.getElementById('fAli').value = e.ali;
-    document.getElementById('fJustine').value = e.justine;
-    document.getElementById('fIncentive').value = e.incentive;
-    document.getElementById('fSalary').value = e.salary;
+    document.getElementById('fIncentive').value = e.incentive || '';
     document.getElementById('fPaid').checked = e.paid;
-    document.getElementById('fRemarks').value = e.remarks;
+    document.getElementById('fRemarks').value = e.remarks || '';
+    renderPayRows(e.pay || {});
   } else {
-    ['fDate','fTeamSales','fAli','fJustine','fIncentive','fSalary','fRemarks'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('fEmployee').value = '';
+    ['fTeamSales','fIncentive','fRemarks'].forEach(f=>document.getElementById(f).value='');
+    document.getElementById('fDate').value = today();
     document.getElementById('fPaid').checked = false;
+    renderPayRows({});
   }
+  updateSalaryPreview();
   entryOverlay.classList.add('active');
 }
 document.getElementById('addEntryBtn').addEventListener('click',()=>openEntryModal(null));
@@ -537,17 +793,13 @@ document.getElementById('entrySave').addEventListener('click',()=>{
     id: id || uid('s'),
     date,
     teamSales: Number(document.getElementById('fTeamSales').value)||0,
-    employee: document.getElementById('fEmployee').value,
-    ali: Number(document.getElementById('fAli').value)||0,
-    justine: Number(document.getElementById('fJustine').value)||0,
+    pay: collectPay(),
     incentive: Number(document.getElementById('fIncentive').value)||0,
-    salary: Number(document.getElementById('fSalary').value)||0,
     paid: document.getElementById('fPaid').checked,
-    remarks: document.getElementById('fRemarks').value,
+    remarks: document.getElementById('fRemarks').value
   };
   if(id){
-    const idx = state.entries.findIndex(x=>x.id===id);
-    state.entries[idx] = payload;
+    state.entries[state.entries.findIndex(x=>x.id===id)] = payload;
   } else {
     state.entries.push(payload);
   }
@@ -556,7 +808,7 @@ document.getElementById('entrySave').addEventListener('click',()=>{
   entryOverlay.classList.remove('active');
 });
 
-/* Expense modal */
+/* ---------- expense modal ---------- */
 const expenseOverlay = document.getElementById('expenseOverlay');
 function openExpenseModal(id){
   document.getElementById('expenseModalTitle').textContent = id ? 'Edit expense' : 'Add expense';
@@ -585,11 +837,10 @@ document.getElementById('expenseSave').addEventListener('click',()=>{
     month: (existing && existing.month) || state.month,
     name,
     amount: Number(document.getElementById('eAmount').value)||0,
-    paid: document.getElementById('ePaid').checked,
+    paid: document.getElementById('ePaid').checked
   };
   if(id){
-    const idx = state.expenses.findIndex(x=>x.id===id);
-    state.expenses[idx] = payload;
+    state.expenses[state.expenses.findIndex(x=>x.id===id)] = payload;
   } else {
     state.expenses.push(payload);
   }
@@ -597,13 +848,157 @@ document.getElementById('expenseSave').addEventListener('click',()=>{
   expenseOverlay.classList.remove('active');
 });
 
-/* Month selector */
-document.getElementById('monthLabel').addEventListener('change', e=>{
-  state.month = e.target.value;
+/* ---------- person modal ---------- */
+const personOverlay = document.getElementById('personOverlay');
+function openPersonModal(id){
+  document.getElementById('personModalTitle').textContent = id ? 'Rename person' : 'Add person';
+  document.getElementById('pId').value = id || '';
+  document.getElementById('pName').value = id ? empById(id).name : '';
+  personOverlay.classList.add('active');
+  setTimeout(()=>document.getElementById('pName').focus(), 30);
+}
+document.getElementById('addPersonBtn').addEventListener('click',()=>openPersonModal(null));
+document.getElementById('personCancel').addEventListener('click',()=>personOverlay.classList.remove('active'));
+document.getElementById('personSave').addEventListener('click',()=>{
+  const name = document.getElementById('pName').value.trim();
+  if(!name){ alert('Please enter a name.'); return; }
+  const id = document.getElementById('pId').value;
+  const clash = state.employees.some(p=>p.name.toLowerCase()===name.toLowerCase() && p.id!==id);
+  if(clash){ alert('There is already someone called '+name+'.'); return; }
+  if(id){ empById(id).name = name; }
+  else { state.employees.push({id: uid('emp-'), name}); }
   saveState(); render();
+  personOverlay.classList.remove('active');
 });
 
-/* Export / import */
+/* ---------- reports ---------- */
+function reportScopeEntries(scope, anchor){
+  if(scope==='day')   return state.entries.filter(e=>e.date===anchor);
+  if(scope==='week'){ const w = weekStart(anchor); return state.entries.filter(e=>weekStart(e.date)===w); }
+  return state.entries.filter(e=>monthKey(e.date)===monthKey(anchor));
+}
+// Employees with pay recorded in these entries, in the team's own order.
+function reportColumns(entries){
+  const used = new Set();
+  entries.forEach(e=>Object.keys(e.pay||{}).forEach(id=>used.add(id)));
+  const known = state.employees.filter(p=>used.has(p.id));
+  const orphans = [...used].filter(id=>!empById(id)).map(id=>({id, name:'Removed'}));
+  return known.concat(orphans);
+}
+function reportTitle(scope, anchor){
+  if(scope==='day')  return 'Daily report';
+  if(scope==='week') return 'Weekly report';
+  return 'Monthly report';
+}
+function reportPeriod(scope, anchor){
+  if(scope==='day')  return fmtLongDate(anchor);
+  if(scope==='week') return weekLabel(weekStart(anchor)) + ', ' + anchor.slice(0,4);
+  return monthName(monthKey(anchor));
+}
+
+function buildReport(scope, anchor){
+  const entries = reportScopeEntries(scope, anchor).sort((a,b)=>a.date.localeCompare(b.date));
+  // Expenses are tracked per month, so they only belong on a monthly report.
+  const expenses = scope==='month' ? state.expenses.filter(e=>e.month===monthKey(anchor)) : [];
+  // Only people who actually appear in this period — no all-zero columns on a printout.
+  const cols = reportColumns(entries);
+  const t = computeTotals(entries, expenses);
+
+  const rows = entries.map(e=>`<tr>
+      <td>${fmtDate(e.date)}</td>
+      <td class="num">${peso(e.teamSales)}</td>
+      ${cols.map(c=>`<td class="num">${(e.pay && c.id in e.pay) ? peso(e.pay[c.id]) : '—'}</td>`).join('')}
+      <td class="num">${e.incentive?peso(e.incentive):'—'}</td>
+      <td class="num">${peso(salaryOf(e))}</td>
+      <td>${isClosed(e)?'Closed':(salaryOf(e)>0?(e.paid?'Paid':'Unpaid'):'')}</td>
+      <td>${escapeHtml(e.remarks||'')}</td>
+    </tr>`).join('');
+
+  const perPerson = cols.map(c=>{
+    const sum = entries.reduce((s,e)=>s + Number((e.pay||{})[c.id]||0), 0);
+    return `<td class="num">${peso(sum)}</td>`;
+  }).join('');
+
+  const totalRow = `<tr class="total">
+      <td>Total</td>
+      <td class="num">${peso(t.totalSales)}</td>
+      ${perPerson}
+      <td class="num">${peso(entries.reduce((s,e)=>s+Number(e.incentive||0),0))}</td>
+      <td class="num">${peso(t.totalSalaries)}</td>
+      <td></td><td></td>
+    </tr>`;
+
+  let html = `<h1>Ledger — ${reportTitle(scope, anchor)}</h1>
+    <div class="rpt-sub">${reportPeriod(scope, anchor)}</div>`;
+
+  if(entries.length===0){
+    html += '<p>No entries recorded for this period.</p>';
+  } else {
+    html += `<table>
+      <thead><tr>
+        <th>Date</th><th class="num">Team sales</th>
+        ${cols.map(c=>`<th class="num">${escapeHtml(c.name)}</th>`).join('')}
+        <th class="num">Incentive/OT</th><th class="num">Salary</th><th>Status</th><th>Remarks</th>
+      </tr></thead>
+      <tbody>${rows}${totalRow}</tbody>
+    </table>`;
+  }
+
+  if(scope==='month'){
+    const weeks = computeWeeks(entries);
+    const wk = Object.keys(weeks).sort();
+    if(wk.length){
+      html += '<h2>Weekly breakdown</h2><table><thead><tr><th>Week</th><th class="num">Sales</th><th class="num">Salary</th><th class="num">Net</th></tr></thead><tbody>'
+        + wk.map(w=>`<tr><td>${weekLabel(w)}</td><td class="num">${peso(weeks[w].sales)}</td><td class="num">${peso(weeks[w].salary)}</td><td class="num">${peso(weeks[w].sales-weeks[w].salary)}</td></tr>`).join('')
+        + '</tbody></table>';
+    }
+    html += '<h2>Expenses</h2>';
+    if(expenses.length===0){
+      html += '<p>No expenses recorded.</p>';
+    } else {
+      html += '<table><thead><tr><th>Item</th><th class="num">Amount</th><th>Status</th></tr></thead><tbody>'
+        + expenses.map(e=>`<tr><td>${escapeHtml(e.name)}</td><td class="num">${peso(e.amount)}</td><td>${e.paid?'Paid':'Unpaid'}</td></tr>`).join('')
+        + `<tr class="total"><td>Total</td><td class="num">${peso(t.totalExpenses)}</td><td></td></tr>`
+        + '</tbody></table>';
+    }
+    html += `<h2>Summary</h2><table><tbody>
+      <tr><td>Total sales</td><td class="num">${peso(t.totalSales)}</td></tr>
+      <tr><td>Salaries</td><td class="num">${peso(t.totalSalaries)}</td></tr>
+      <tr><td>Expenses</td><td class="num">${peso(t.totalExpenses)}</td></tr>
+      <tr class="total"><td>Net income</td><td class="num">${peso(t.net)}</td></tr>
+    </tbody></table>`;
+  } else {
+    html += `<h2>Summary</h2><table><tbody>
+      <tr><td>Total sales</td><td class="num">${peso(t.totalSales)}</td></tr>
+      <tr class="total"><td>Salaries</td><td class="num">${peso(t.totalSalaries)}</td></tr>
+    </tbody></table>`;
+  }
+
+  html += `<div class="rpt-foot">Generated ${new Date().toLocaleString('en-PH')} · Ledger</div>`;
+  return html;
+}
+
+function syncReportDateField(){
+  const scope = document.getElementById('rptScope').value;
+  const label = document.querySelector('#rptDateField label');
+  label.textContent = scope==='day' ? 'Which day' : scope==='week' ? 'Any day in that week' : 'Any day in that month';
+}
+document.getElementById('rptScope').addEventListener('change', syncReportDateField);
+
+document.getElementById('rptBtn').addEventListener('click',()=>{
+  const scope  = document.getElementById('rptScope').value;
+  const anchor = document.getElementById('rptDate').value || today();
+  document.getElementById('printArea').innerHTML = buildReport(scope, anchor);
+  window.print();
+});
+
+/* ---------- month selector ---------- */
+document.getElementById('monthLabel').addEventListener('change', e=>{
+  state.month = e.target.value;
+  render();   // deliberately not saved: the app always opens on the current month
+});
+
+/* ---------- export / import ---------- */
 // On a normal web host the anchor download works; inside the Claude artifact
 // viewer saving is mediated, so use that path when it is offered.
 let downloadsApi = null;
@@ -612,7 +1007,7 @@ if(window.claude && typeof window.claude.use === 'function'){
 }
 document.getElementById('exportBtn').addEventListener('click', async ()=>{
   const json = JSON.stringify(state,null,2);
-  const filename = 'ledger-' + new Date().toISOString().slice(0,10) + '.json';
+  const filename = 'ledger-' + today() + '.json';
   if(downloadsApi){
     try{ await downloadsApi.save({filename, data:json}); }
     catch(err){ if(!err || err.code !== 'declined') alert('Could not save the backup file.'); }
@@ -625,7 +1020,7 @@ document.getElementById('exportBtn').addEventListener('click', async ()=>{
   a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
 });
-document.getElementById('importBtn').addEventListener('click', ()=>document.getElementById('importFile').click());
+document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('importFile').click());
 document.getElementById('importFile').addEventListener('change', ev=>{
   const file = ev.target.files[0];
   if(!file) return;
@@ -635,7 +1030,7 @@ document.getElementById('importFile').addEventListener('change', ev=>{
       const data = JSON.parse(reader.result);
       if(!Array.isArray(data.entries) || !Array.isArray(data.expenses)) throw new Error('shape');
       if(!confirm('Replace everything currently in this ledger with the backup file?')) return;
-      state = Object.assign({cash:0, entries:[], expenses:[]}, data);
+      state = Object.assign({employees:[], entries:[], expenses:[]}, data);
       migrate(); saveState(); render();
     }catch(err){
       alert('That file is not a Ledger backup.');
@@ -645,17 +1040,16 @@ document.getElementById('importFile').addEventListener('change', ev=>{
   ev.target.value = '';
 });
 
-/* Cash field */
-document.getElementById('statCash').addEventListener('change', e=>{
-  state.cash = Number(e.target.value)||0;
-  saveState();
-});
-
-/* Close modals on backdrop click */
-[entryOverlay, expenseOverlay].forEach(ov=>{
+/* ---------- misc ---------- */
+[entryOverlay, expenseOverlay, personOverlay].forEach(ov=>{
   ov.addEventListener('click', e=>{ if(e.target===ov) ov.classList.remove('active'); });
 });
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape') document.querySelectorAll('.overlay.active').forEach(o=>o.classList.remove('active'));
+});
 
+document.getElementById('rptDate').value = today();
+syncReportDateField();
 loadState();
 </script>
 </body>
