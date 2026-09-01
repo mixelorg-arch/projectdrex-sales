@@ -28,11 +28,28 @@ Open **SQL Editor → New query**, paste the whole of [`schema.sql`](schema.sql)
 and run it. It creates three tables and turns on row level security so each row
 is readable only by the account that owns it.
 
-## 3. Create your login
+## 3. Switch on the sync in the app
 
-**Authentication → Users → Add user**, with your own email address. Then open
-**Authentication → Users**, click your new user, and copy the **UID** — a long
-`uuid`. That is your `REPORT_OWNER` in the next step.
+Open [`config.js`](../config.js) and paste in the two values from step 1:
+
+```js
+window.LEDGER_CONFIG = {
+  supabaseUrl: 'https://abcdefgh.supabase.co',
+  supabaseAnonKey: 'eyJhbGci...'
+};
+```
+
+Commit and push, and the ledger grows a **Sign in** control. Sign in with your
+email — you get a link, no password. **The first person to sign in becomes the
+owner automatically**; everyone after that has no access until you add them (the
+snippet for that is at the bottom of `schema.sql`).
+
+In Supabase, go to **Authentication → URL Configuration** and add
+`https://mixelorg-arch.github.io/projectdrex-sales/` to **Redirect URLs**, or the
+sign-in link will bounce.
+
+Leaving `config.js` blank keeps everything exactly as it is now: local to one
+browser, nothing sent anywhere.
 
 ## 4. Create the Resend account and set the secrets
 
@@ -47,7 +64,6 @@ is readable only by the account that owns it.
    | `RESEND_API_KEY` | the key from Resend |
    | `REPORT_FROM` | `Ledger <ledger@yourdomain.com>` — must be the verified sender |
    | `REPORT_TO` | `projectdrexxx@gmail.com` |
-   | `REPORT_OWNER` | the user UID from step 3 |
    | `CRON_SECRET` | any long random string you invent |
 
    `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are provided automatically —
@@ -108,9 +124,14 @@ A `200` and a PDF in the inbox means it works. The same endpoint takes
 
 ---
 
-## What is still to do after this
+## How the sync behaves
 
-The web app does not read or write Supabase yet — it is still on
-`localStorage`. Once the project above exists and you give me the Project URL
-and anon key, the app gets a login and starts syncing, and the 5pm email will
-have data to report on. Until then the function will send an empty report.
+* Every change is written to this browser **first**, then pushed. If the network
+  is down the edit is queued and goes up on the next successful sync — nothing
+  is lost and nothing is blocked.
+* Conflicts resolve per row, newest wins, using the database's clock rather than
+  the device's. Two people editing different days never collide.
+* Deletes are kept as tombstones so they propagate instead of being resurrected
+  by a device with a stale copy.
+* If Supabase is unreachable, or `config.js` is blank, the ledger simply works
+  the way it does today.

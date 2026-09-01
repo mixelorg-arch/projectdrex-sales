@@ -7,6 +7,7 @@
 <title>Ledger — Sales &amp; Payroll</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@400;500&display=swap" rel="stylesheet">
+<script src="config.js"></script>
 <style>
   :root{
     --canvas:#fafaf9; --white:#ffffff; --border:#e8e6e5; --border-muted:#d6d3d1;
@@ -37,6 +38,12 @@
   .btn:disabled{opacity:.45;cursor:default;}
   .btn:disabled:hover{opacity:.45;}
   .btn-row{display:flex;gap:8px;}
+  .sync-pill{display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--white);padding:6px 14px;border-radius:var(--radius-pill);font-size:13px;color:var(--warm);}
+  .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--ash);flex:none;}
+  .sync-dot.ok{background:#3f9e5a;}
+  .sync-dot.busy{background:var(--cyan);}
+  .sync-dot.bad{background:#b3413a;}
+  .sync-pill button{border:none;background:transparent;font-family:var(--font-body);font-size:13px;color:var(--cyan-edge);cursor:pointer;padding:0;text-decoration:underline;}
   .nav-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
 
   h1,h2,h3{font-family:var(--font-display);font-weight:400;margin:0;}
@@ -165,6 +172,12 @@
       <div class="month-pill">
         <span>Month</span>
         <select id="monthLabel"></select>
+      </div>
+      <div class="sync-pill" id="syncPill" hidden>
+        <span class="sync-dot" id="syncDot"></span>
+        <span id="syncText">Local only</span>
+        <button id="signInBtn" hidden>Sign in</button>
+        <button id="signOutBtn" hidden>Sign out</button>
       </div>
       <div class="btn-row">
         <button class="btn btn-ghost" id="exportBtn">Export</button>
@@ -339,6 +352,19 @@
   </div>
 </div>
 
+<!-- Sign in modal -->
+<div class="overlay" id="authOverlay">
+  <div class="modal">
+    <h3>Sign in to sync</h3>
+    <p class="danger-note" id="authBlurb">Enter your email and we'll send you a sign-in link. No password to remember.</p>
+    <div class="field"><label for="authEmail">Email</label><input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="authCancel">Cancel</button>
+      <button class="btn btn-primary" id="authSend">Send link</button>
+    </div>
+  </div>
+</div>
+
 <!-- Delete month modal -->
 <div class="overlay" id="deleteOverlay">
   <div class="modal">
@@ -432,16 +458,32 @@ function weekLabel(startStr){
 }
 
 /* ---------- employees ---------- */
+// A row is "live" until it is soft-deleted. Deletes are kept as tombstones so
+// they can propagate to other devices instead of being resurrected by a stale copy.
+function live(rows){ return rows.filter(r=>!r.deleted); }
+
+// Mark a record as changed locally, so the sync layer knows to push it.
+function touch(rec){
+  rec._dirty = true;
+  rec.updated_at = new Date().toISOString();
+  return rec;
+}
+function softDelete(rows, pred){
+  let n = 0;
+  rows.forEach(r=>{ if(!r.deleted && pred(r)){ r.deleted = true; touch(r); n++; } });
+  return n;
+}
+
 function empById(id){ return state.employees.find(e=>e.id===id); }
 function empName(id){ const e = empById(id); return e ? e.name : 'Removed'; }
-function activeEmployees(){ return state.employees.filter(e=>!e.archived); }
-function employeeHasHistory(id){ return state.entries.some(e=>e.pay && id in e.pay); }
+function activeEmployees(){ return state.employees.filter(e=>!e.archived && !e.deleted); }
+function employeeHasHistory(id){ return live(state.entries).some(e=>e.pay && id in e.pay); }
 // Columns worth showing: everyone active, plus archived people who still have data here.
 function columnEmployees(entries){
   const used = new Set();
   entries.forEach(e=>Object.keys(e.pay||{}).forEach(id=>used.add(id)));
   const cols = activeEmployees().slice();
-  state.employees.forEach(e=>{ if(e.archived && used.has(e.id)) cols.push(e); });
+  live(state.employees).forEach(e=>{ if(e.archived && used.has(e.id)) cols.push(e); });
   used.forEach(id=>{ if(!empById(id)) cols.push({id, name:'Removed'}); });
   return cols;
 }
@@ -465,6 +507,13 @@ function loadState(){
   }catch(e){ /* no saved data yet — use defaults */ }
   migrate();
   render();
+}
+// Single exit point for every change: persist locally first, always, then
+// redraw, then let the sync layer push if it is switched on.
+function commit(){
+  saveState();
+  render();
+  if(typeof scheduleSync === 'function') scheduleSync();
 }
 function saveState(){
   try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
@@ -519,13 +568,13 @@ function migrate(){
 /* ---------- scoping ---------- */
 function monthsAvailable(){
   const set = new Set();
-  state.entries.forEach(e=>{ const k = monthKey(e.date); if(k) set.add(k); });
-  state.expenses.forEach(e=>{ if(e.month) set.add(e.month); });
+  live(state.entries).forEach(e=>{ const k = monthKey(e.date); if(k) set.add(k); });
+  live(state.expenses).forEach(e=>{ if(e.month) set.add(e.month); });
   set.add(thisMonthKey());
   return [...set].sort().reverse();
 }
-function visibleEntries(){ return state.entries.filter(e=>monthKey(e.date)===state.month); }
-function visibleExpenses(){ return state.expenses.filter(e=>e.month===state.month); }
+function visibleEntries(){ return live(state.entries).filter(e=>monthKey(e.date)===state.month); }
+function visibleExpenses(){ return live(state.expenses).filter(e=>e.month===state.month); }
 
 function computeTotals(entries, expenses){
   const totalSales    = entries.reduce((s,e)=>s+Number(e.teamSales||0),0);
@@ -620,8 +669,8 @@ function renderEntries(){
   body.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>openEntryModal(b.dataset.edit)));
   body.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{
     if(!confirm('Delete this entry?')) return;
-    state.entries = state.entries.filter(x=>x.id!==b.dataset.del);
-    saveState(); render();
+    softDelete(state.entries, x=>x.id===b.dataset.del);
+    commit();
   }));
 }
 
@@ -656,8 +705,8 @@ function renderExpenses(){
   body.querySelectorAll('[data-eedit]').forEach(b=>b.addEventListener('click',()=>openExpenseModal(b.dataset.eedit)));
   body.querySelectorAll('[data-edel]').forEach(b=>b.addEventListener('click',()=>{
     if(!confirm('Delete this expense?')) return;
-    state.expenses = state.expenses.filter(x=>x.id!==b.dataset.edel);
-    saveState(); render();
+    softDelete(state.expenses, x=>x.id===b.dataset.edel);
+    commit();
   }));
 }
 
@@ -685,12 +734,14 @@ function renderWeekly(){
 
 function renderPeople(){
   const box = document.getElementById('peopleList');
+  const people = live(state.employees);
   box.innerHTML = '';
-  if(state.employees.length===0){ document.getElementById('peopleEmpty').style.display='block'; return; }
+  if(people.length===0){ document.getElementById('peopleEmpty').style.display='block'; return; }
   document.getElementById('peopleEmpty').style.display='none';
-  state.employees.forEach(p=>{
-    const days = state.entries.filter(e=>e.pay && p.id in e.pay).length;
-    const paid = state.entries.reduce((s,e)=>s + Number((e.pay||{})[p.id] || 0), 0);
+  people.forEach(p=>{
+    const rows = live(state.entries);
+    const days = rows.filter(e=>e.pay && p.id in e.pay).length;
+    const paid = rows.reduce((s,e)=>s + Number((e.pay||{})[p.id] || 0), 0);
     const row = document.createElement('div');
     row.className = 'person-row' + (p.archived ? ' archived' : '');
     row.innerHTML = `
@@ -709,7 +760,8 @@ function renderPeople(){
   box.querySelectorAll('[data-parch]').forEach(b=>b.addEventListener('click',()=>{
     const p = empById(b.dataset.parch);
     p.archived = !p.archived;
-    saveState(); render();
+    touch(p);
+    commit();
   }));
   box.querySelectorAll('[data-pdel]').forEach(b=>b.addEventListener('click',()=>{
     const id = b.dataset.pdel;
@@ -718,8 +770,8 @@ function renderPeople(){
       return;
     }
     if(!confirm('Remove '+empName(id)+'?')) return;
-    state.employees = state.employees.filter(p=>p.id!==id);
-    saveState(); render();
+    softDelete(state.employees, p=>p.id===id);
+    commit();
   }));
 }
 
@@ -825,13 +877,14 @@ document.getElementById('entrySave').addEventListener('click',()=>{
     paid: document.getElementById('fPaid').checked,
     remarks: document.getElementById('fRemarks').value
   };
+  touch(payload);
   if(id){
     state.entries[state.entries.findIndex(x=>x.id===id)] = payload;
   } else {
     state.entries.push(payload);
   }
   state.month = monthKey(date);
-  saveState(); render();
+  commit();
   entryOverlay.classList.remove('active');
 });
 
@@ -866,12 +919,13 @@ document.getElementById('expenseSave').addEventListener('click',()=>{
     amount: Number(document.getElementById('eAmount').value)||0,
     paid: document.getElementById('ePaid').checked
   };
+  touch(payload);
   if(id){
     state.expenses[state.expenses.findIndex(x=>x.id===id)] = payload;
   } else {
     state.expenses.push(payload);
   }
-  saveState(); render();
+  commit();
   expenseOverlay.classList.remove('active');
 });
 
@@ -892,23 +946,24 @@ document.getElementById('personSave').addEventListener('click',()=>{
   const id = document.getElementById('pId').value;
   const clash = state.employees.some(p=>p.name.toLowerCase()===name.toLowerCase() && p.id!==id);
   if(clash){ alert('There is already someone called '+name+'.'); return; }
-  if(id){ empById(id).name = name; }
-  else { state.employees.push({id: uid('emp-'), name}); }
-  saveState(); render();
+  if(id){ touch(Object.assign(empById(id), {name})); }
+  else { state.employees.push(touch({id: uid('emp-'), name})); }
+  commit();
   personOverlay.classList.remove('active');
 });
 
 /* ---------- reports ---------- */
 function reportScopeEntries(scope, anchor){
-  if(scope==='day')   return state.entries.filter(e=>e.date===anchor);
-  if(scope==='week'){ const w = weekStart(anchor); return state.entries.filter(e=>weekStart(e.date)===w); }
-  return state.entries.filter(e=>monthKey(e.date)===monthKey(anchor));
+  const rows = live(state.entries);
+  if(scope==='day')   return rows.filter(e=>e.date===anchor);
+  if(scope==='week'){ const w = weekStart(anchor); return rows.filter(e=>weekStart(e.date)===w); }
+  return rows.filter(e=>monthKey(e.date)===monthKey(anchor));
 }
 // Employees with pay recorded in these entries, in the team's own order.
 function reportColumns(entries){
   const used = new Set();
   entries.forEach(e=>Object.keys(e.pay||{}).forEach(id=>used.add(id)));
-  const known = state.employees.filter(p=>used.has(p.id));
+  const known = live(state.employees).filter(p=>used.has(p.id));
   const orphans = [...used].filter(id=>!empById(id)).map(id=>({id, name:'Removed'}));
   return known.concat(orphans);
 }
@@ -926,7 +981,7 @@ function reportPeriod(scope, anchor){
 function buildReport(scope, anchor){
   const entries = reportScopeEntries(scope, anchor).sort((a,b)=>a.date.localeCompare(b.date));
   // Expenses are tracked per month, so they only belong on a monthly report.
-  const expenses = scope==='month' ? state.expenses.filter(e=>e.month===monthKey(anchor)) : [];
+  const expenses = scope==='month' ? live(state.expenses).filter(e=>e.month===monthKey(anchor)) : [];
   // Only people who actually appear in this period — no all-zero columns on a printout.
   const cols = reportColumns(entries);
   const t = computeTotals(entries, expenses);
@@ -1102,16 +1157,185 @@ document.getElementById('deleteCancel').addEventListener('click',()=>deleteOverl
 document.getElementById('deleteBackup').addEventListener('click', exportBackup);
 document.getElementById('deleteConfirm').addEventListener('click',()=>{
   const m = state.month;
-  state.entries  = state.entries.filter(e=>monthKey(e.date)!==m);
-  state.expenses = state.expenses.filter(e=>e.month!==m);
+  softDelete(state.entries,  e=>monthKey(e.date)===m);
+  softDelete(state.expenses, e=>e.month===m);
   // That month may no longer be in the list at all; fall back to the current one.
   if(!monthsAvailable().includes(m)) state.month = thisMonthKey();
-  saveState(); render();
+  commit();
   deleteOverlay.classList.remove('active');
 });
 
+/* ---------- online sync (only when config.js is filled in) ---------- */
+const CFG = window.LEDGER_CONFIG || {};
+const SYNC_ON = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
+let sb = null, session = null, syncTimer = null, syncing = false;
+
+// How each local collection maps to its table, in both directions.
+const COLLECTIONS = [
+  { key:'employees', table:'employees',
+    toRow: e => ({id:e.id, name:e.name, archived:!!e.archived, deleted:!!e.deleted}),
+    fromRow: r => ({id:r.id, name:r.name, archived:!!r.archived, deleted:!!r.deleted, updated_at:r.updated_at}) },
+  { key:'entries', table:'entries',
+    toRow: e => ({id:e.id, date:e.date, team_sales:Number(e.teamSales)||0, pay:e.pay||{},
+                  incentive:Number(e.incentive)||0, paid:!!e.paid, remarks:e.remarks||'', deleted:!!e.deleted}),
+    fromRow: r => ({id:r.id, date:r.date, teamSales:Number(r.team_sales)||0, pay:r.pay||{},
+                    incentive:Number(r.incentive)||0, paid:!!r.paid, remarks:r.remarks||'',
+                    deleted:!!r.deleted, updated_at:r.updated_at}) },
+  { key:'expenses', table:'expenses',
+    toRow: e => ({id:e.id, month:e.month, name:e.name, amount:Number(e.amount)||0, paid:!!e.paid, deleted:!!e.deleted}),
+    fromRow: r => ({id:r.id, month:r.month, name:r.name, amount:Number(r.amount)||0,
+                    paid:!!r.paid, deleted:!!r.deleted, updated_at:r.updated_at}) }
+];
+
+const ts = v => v ? Date.parse(v) : 0;
+
+// Last write wins, per row. A row edited here and not yet pushed always wins,
+// because it is about to be pushed and the server will restamp it.
+function mergeCollection(localRows, remoteRaw, fromRow){
+  const byId = new Map(localRows.map(r => [r.id, r]));
+  remoteRaw.forEach(raw => {
+    const incoming = fromRow(raw);
+    const current = byId.get(incoming.id);
+    if(!current){ byId.set(incoming.id, incoming); return; }
+    if(current._dirty) return;
+    if(ts(incoming.updated_at) >= ts(current.updated_at)) byId.set(incoming.id, incoming);
+  });
+  return [...byId.values()];
+}
+
+function setSyncStatus(kind, note){
+  const pill = document.getElementById('syncPill');
+  if(!SYNC_ON){ pill.hidden = true; return; }
+  pill.hidden = false;
+  const dot = document.getElementById('syncDot');
+  const text = document.getElementById('syncText');
+  dot.className = 'sync-dot' + (kind==='ok'?' ok':kind==='syncing'?' busy':kind==='error'?' bad':'');
+  text.textContent = note || ({
+    ok:'Synced', syncing:'Syncing…', error:'Sync failed', signedout:'Not signed in', offline:'Offline'
+  }[kind] || 'Local only');
+  document.getElementById('signInBtn').hidden = !!session;
+  document.getElementById('signOutBtn').hidden = !session;
+}
+
+async function pushDirty(){
+  for(const c of COLLECTIONS){
+    const dirty = state[c.key].filter(r => r._dirty);
+    if(!dirty.length) continue;
+    const { data, error } = await sb.from(c.table).upsert(dirty.map(c.toRow)).select();
+    if(error) throw error;
+    (data||[]).forEach(row => {
+      const local = state[c.key].find(r => r.id === row.id);
+      if(local){ delete local._dirty; local.updated_at = row.updated_at; }
+    });
+  }
+}
+
+async function pullSince(){
+  const since = state.syncedAt || '1970-01-01T00:00:00Z';
+  let newest = since;
+  for(const c of COLLECTIONS){
+    const { data, error } = await sb.from(c.table).select('*').gt('updated_at', since);
+    if(error) throw error;
+    state[c.key] = mergeCollection(state[c.key], data || [], c.fromRow);
+    (data||[]).forEach(r => { if(ts(r.updated_at) > ts(newest)) newest = r.updated_at; });
+  }
+  state.syncedAt = newest;
+}
+
+// First device to connect seeds the empty database with what it already holds.
+async function bootstrapIfEmpty(){
+  const { count, error } = await sb.from('entries').select('id', {count:'exact', head:true});
+  if(error) throw error;
+  if(count === 0) COLLECTIONS.forEach(c => state[c.key].forEach(touch));
+}
+
+async function syncNow(){
+  if(!sb || !session || syncing) return;
+  if(!navigator.onLine){ setSyncStatus('offline'); return; }
+  syncing = true;
+  setSyncStatus('syncing');
+  try{
+    if(!state.syncedAt) await bootstrapIfEmpty();
+    await pushDirty();
+    await pullSince();
+    saveState(); render();
+    setSyncStatus('ok');
+  }catch(err){
+    // Local data is untouched on failure — it is saved before any of this runs.
+    console.error('sync failed', err);
+    setSyncStatus('error', 'Sync failed — saved locally');
+  }finally{
+    syncing = false;
+  }
+}
+
+function scheduleSync(){
+  if(!SYNC_ON || !session) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncNow, 1500);
+}
+
+async function initSync(){
+  if(!SYNC_ON){ setSyncStatus('local'); return; }
+  setSyncStatus('syncing', 'Connecting…');
+  try{
+    const mod = await import('https://esm.sh/@supabase/supabase-js@2.45.4');
+    sb = mod.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey);
+  }catch(e){
+    console.error('could not load supabase-js', e);
+    setSyncStatus('error', 'Offline — saved locally');
+    return;
+  }
+  const { data } = await sb.auth.getSession();
+  session = data ? data.session : null;
+  sb.auth.onAuthStateChange((_evt, s) => {
+    session = s;
+    setSyncStatus(s ? 'ok' : 'signedout');
+    if(s) syncNow();
+  });
+  setSyncStatus(session ? 'ok' : 'signedout');
+  if(session) syncNow();
+  setInterval(() => { if(session) syncNow(); }, 30000);
+  window.addEventListener('online',  () => scheduleSync());
+  window.addEventListener('offline', () => setSyncStatus('offline'));
+  window.addEventListener('focus',   () => { if(session) scheduleSync(); });
+}
+
+const authOverlay = document.getElementById('authOverlay');
+document.getElementById('signInBtn').addEventListener('click', () => {
+  document.getElementById('authBlurb').textContent =
+    "Enter your email and we'll send you a sign-in link. No password to remember.";
+  authOverlay.classList.add('active');
+  setTimeout(() => document.getElementById('authEmail').focus(), 30);
+});
+document.getElementById('authCancel').addEventListener('click', () => authOverlay.classList.remove('active'));
+document.getElementById('authSend').addEventListener('click', async () => {
+  const email = document.getElementById('authEmail').value.trim();
+  if(!email){ alert('Please enter your email.'); return; }
+  const btn = document.getElementById('authSend');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try{
+    const { error } = await sb.auth.signInWithOtp({
+      email, options: { emailRedirectTo: location.href.split('#')[0] }
+    });
+    if(error) throw error;
+    document.getElementById('authBlurb').textContent =
+      'Link sent to ' + email + '. Open it on this device to finish signing in.';
+  }catch(err){
+    document.getElementById('authBlurb').textContent = 'Could not send the link: ' + err.message;
+  }finally{
+    btn.disabled = false; btn.textContent = 'Send link';
+  }
+});
+document.getElementById('signOutBtn').addEventListener('click', async () => {
+  if(!confirm('Sign out? Your data stays on this device.')) return;
+  await sb.auth.signOut();
+  session = null;
+  setSyncStatus('signedout');
+});
+
 /* ---------- misc ---------- */
-[entryOverlay, expenseOverlay, personOverlay, deleteOverlay].forEach(ov=>{
+[entryOverlay, expenseOverlay, personOverlay, deleteOverlay, authOverlay].forEach(ov=>{
   ov.addEventListener('click', e=>{ if(e.target===ov) ov.classList.remove('active'); });
 });
 document.addEventListener('keydown', e=>{
@@ -1121,6 +1345,7 @@ document.addEventListener('keydown', e=>{
 document.getElementById('rptDate').value = today();
 syncReportDateField();
 loadState();
+initSync();
 </script>
 </body>
 </html>

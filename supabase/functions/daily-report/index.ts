@@ -8,7 +8,6 @@
 //   RESEND_API_KEY   from resend.com
 //   REPORT_FROM      verified sender, e.g. "Ledger <ledger@yourdomain.com>"
 //   REPORT_TO        projectdrexxx@gmail.com
-//   REPORT_OWNER     your auth user id (Dashboard → Authentication → Users)
 //   CRON_SECRET      any long random string; also sent by the cron job
 //
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are injected automatically.
@@ -182,7 +181,6 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const scope = url.searchParams.get("scope") ?? "day";
   const anchor = url.searchParams.get("date") ?? manilaToday();
-  const owner = Deno.env.get("REPORT_OWNER")!;
   const [from, to, period] = rangeFor(scope, anchor);
 
   const db = createClient(
@@ -191,10 +189,11 @@ Deno.serve(async (req) => {
   );
 
   const [{ data: entries }, { data: people }, { data: expenses }] = await Promise.all([
-    db.from("entries").select("*").eq("owner", owner).gte("date", from).lte("date", to).order("date"),
-    db.from("employees").select("*").eq("owner", owner),
+    db.from("entries").select("*").eq("deleted", false)
+      .gte("date", from).lte("date", to).order("date"),
+    db.from("employees").select("*").eq("deleted", false),
     scope === "month"
-      ? db.from("expenses").select("*").eq("owner", owner).eq("month", anchor.slice(0, 7))
+      ? db.from("expenses").select("*").eq("deleted", false).eq("month", anchor.slice(0, 7))
       : Promise.resolve({ data: [] as never[] }),
   ]);
 
