@@ -229,6 +229,7 @@
       <div class="sync-pill" id="syncPill" hidden>
         <span class="sync-dot" id="syncDot"></span>
         <span id="syncText">Local only</span>
+        <button id="accountBtn" hidden>Account</button>
         <button id="signOutBtn" hidden>Sign out</button>
       </div>
       <div class="btn-row">
@@ -429,6 +430,22 @@
     <div class="modal-actions">
       <button class="btn btn-ghost" id="personCancel">Cancel</button>
       <button class="btn btn-primary" id="personSave">Save person</button>
+    </div>
+  </div>
+</div>
+
+<!-- Account modal -->
+<div class="overlay" id="accountOverlay">
+  <div class="modal">
+    <h3>Your account</h3>
+    <p class="danger-note" id="accountWho"></p>
+    <div class="field"><label for="acctPassword">Set a password</label>
+      <input type="password" id="acctPassword" autocomplete="new-password" placeholder="At least 8 characters"></div>
+    <p class="report-hint">A password lets you sign in without waiting for an email — worth setting, because the free email allowance runs out quickly.</p>
+    <p class="gate-msg" id="acctMsg"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="accountCancel">Close</button>
+      <button class="btn btn-primary" id="acctSave">Save password</button>
     </div>
   </div>
 </div>
@@ -1254,6 +1271,7 @@ function setSyncStatus(kind, note){
     ok:'Synced', syncing:'Syncing…', error:'Sync failed', signedout:'Not signed in', offline:'Offline'
   }[kind] || 'Local only');
   document.getElementById('signOutBtn').hidden = !session;
+  document.getElementById('accountBtn').hidden = !session;
 }
 
 async function pushDirty(){
@@ -1488,6 +1506,36 @@ document.getElementById('gateMagic').addEventListener('click', async ()=>{
   }
 });
 
+const accountOverlay = document.getElementById('accountOverlay');
+document.getElementById('accountBtn').addEventListener('click', ()=>{
+  document.getElementById('accountWho').textContent =
+    session ? 'Signed in as ' + session.user.email : '';
+  document.getElementById('acctPassword').value = '';
+  document.getElementById('acctMsg').textContent = '';
+  document.getElementById('acctMsg').className = 'gate-msg';
+  accountOverlay.classList.add('active');
+});
+document.getElementById('accountCancel').addEventListener('click', ()=>accountOverlay.classList.remove('active'));
+document.getElementById('acctSave').addEventListener('click', async ()=>{
+  const pw = document.getElementById('acctPassword').value;
+  const msg = document.getElementById('acctMsg');
+  if(pw.length < 8){ msg.textContent = 'Use at least 8 characters.'; msg.className = 'gate-msg err'; return; }
+  const btn = document.getElementById('acctSave');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try{
+    const { error } = await sb.auth.updateUser({ password: pw });
+    if(error) throw error;
+    msg.textContent = 'Password set. You can sign in with it from now on.';
+    msg.className = 'gate-msg ok';
+    document.getElementById('acctPassword').value = '';
+  }catch(err){
+    msg.textContent = err.message || 'Could not set the password.';
+    msg.className = 'gate-msg err';
+  }finally{
+    btn.disabled = false; btn.textContent = 'Save password';
+  }
+});
+
 async function doSignOut(){
   await sb.auth.signOut();
   session = null; access = 'signedout'; myRole = null;
@@ -1606,7 +1654,7 @@ document.getElementById('inviteBtn').addEventListener('click', async ()=>{
 document.querySelector('[data-tab="admin"]').addEventListener('click', renderAdmin);
 
 /* ---------- misc ---------- */
-[entryOverlay, expenseOverlay, personOverlay, deleteOverlay].forEach(ov=>{
+[entryOverlay, expenseOverlay, personOverlay, deleteOverlay, accountOverlay].forEach(ov=>{
   ov.addEventListener('click', e=>{ if(e.target===ov) ov.classList.remove('active'); });
 });
 document.addEventListener('keydown', e=>{
