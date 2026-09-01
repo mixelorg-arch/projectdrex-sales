@@ -345,6 +345,21 @@
       <div class="empty" id="requestEmpty" style="display:none;">Nobody is waiting for access.</div>
     </div>
     <div class="card">
+      <div class="card-head"><h3>Pre-approve an email</h3></div>
+      <div class="report-controls">
+        <div class="field"><label for="inviteEmail">Email</label>
+          <input type="email" id="inviteEmail" placeholder="name@example.com"></div>
+        <div class="field"><label for="inviteRole">Role</label>
+          <select id="inviteRole">
+            <option value="staff">Staff — can use the ledger</option>
+            <option value="owner">Owner — can also manage people</option>
+          </select></div>
+        <button class="btn btn-primary" id="inviteBtn">Pre-approve</button>
+      </div>
+      <p class="report-hint">They get straight in when they register with this address, skipping the queue. No email is sent from here — tell them yourself.</p>
+      <div id="inviteList" style="margin-top:18px;"></div>
+    </div>
+    <div class="card">
       <div class="card-head"><h3>Who can use this ledger</h3></div>
       <div id="memberList"></div>
     </div>
@@ -1491,10 +1506,31 @@ async function renderAdmin(){
   const reqBox = document.getElementById('requestList');
   const memBox = document.getElementById('memberList');
   try{
-    const [{ data: reqs }, { data: mems }] = await Promise.all([
+    const [{ data: reqs }, { data: mems }, { data: invs }] = await Promise.all([
       sb.from('access_requests').select('*').order('requested_at'),
-      sb.from('members').select('*').order('added_at')
+      sb.from('members').select('*').order('added_at'),
+      sb.from('invites').select('*').order('invited_at')
     ]);
+
+    const invBox = document.getElementById('inviteList');
+    invBox.innerHTML = '';
+    (invs || []).forEach(v=>{
+      const row = document.createElement('div');
+      row.className = 'req-row';
+      row.innerHTML = '<div><div class="person-name">' + escapeHtml(v.email) +
+        '<span class="role-tag">' + escapeHtml(v.role) + '</span></div>' +
+        '<div class="person-meta">waiting for them to register</div></div>';
+      const rm = document.createElement('button');
+      rm.className = 'btn btn-ghost'; rm.textContent = 'Cancel';
+      rm.addEventListener('click', async ()=>{
+        if(!confirm('Cancel the invite for ' + v.email + '?')) return;
+        const { error } = await sb.from('invites').delete().eq('email', v.email);
+        if(error){ alert('Could not cancel: ' + error.message); return; }
+        renderAdmin();
+      });
+      row.appendChild(rm);
+      invBox.appendChild(row);
+    });
 
     reqBox.innerHTML = '';
     const list = reqs || [];
@@ -1553,6 +1589,20 @@ async function renderAdmin(){
     console.error('admin load failed', err);
   }
 }
+document.getElementById('inviteBtn').addEventListener('click', async ()=>{
+  const email = document.getElementById('inviteEmail').value.trim().toLowerCase();
+  const role  = document.getElementById('inviteRole').value;
+  if(!email){ alert('Enter an email address.'); return; }
+  if(role === 'owner' && !confirm(email + ' will be able to add and remove people, including other owners. Continue?')) return;
+  const btn = document.getElementById('inviteBtn');
+  btn.disabled = true;
+  const { error } = await sb.from('invites').upsert({email, role});
+  btn.disabled = false;
+  if(error){ alert('Could not save the invite: ' + error.message); return; }
+  document.getElementById('inviteEmail').value = '';
+  renderAdmin();
+});
+
 document.querySelector('[data-tab="admin"]').addEventListener('click', renderAdmin);
 
 /* ---------- misc ---------- */

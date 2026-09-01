@@ -172,3 +172,44 @@ drop policy if exists owner_requests  on public.access_requests;
 create policy own_request    on public.access_requests for select using (user_id = auth.uid());
 create policy owner_requests on public.access_requests for all
   using (public.is_owner()) with check (public.is_owner());
+-- ============================================================
+-- Invites: pre-authorise an email so it skips the approval queue.
+-- ============================================================
+create table if not exists public.invites (
+  email      text primary key,
+  role       text not null default 'staff',
+  invited_at timestamptz not null default now()
+);
+alter table public.invites enable row level security;
+
+drop policy if exists owner_invites on public.invites;
+create policy owner_invites on public.invites for all
+  using (public.is_owner()) with check (public.is_owner());
+
+-- On signup: first person ever owns the ledger; an invited email gets the role
+-- it was invited with; everyone else waits for approval.
+create or replace function public.claim_first_member()
+returns trigger language plpgsql security definer as $$
+declare inv_role text;
+begin
+  if not exists (select 1 from public.members) then
+    insert into public.members (user_id, email, role) values (new.id, new.email, 'owner');
+    return new;
+  end if;
+
+  select role into inv_role from public.invites where lower(email) = lower(new.email);
+
+  if inv_role is not null then
+    insert into public.members (user_id, email, role) values (new.id, new.email, inv_role);
+    delete from public.invites where lower(email) = lower(new.email);
+  else
+    insert into public.access_requests (user_id, email) values (new.id, new.email)
+      on conflict (user_id) do nothing;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.claim_first_member();
