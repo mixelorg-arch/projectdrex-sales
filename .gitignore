@@ -3,3 +3,9 @@ artifact.html
 index.blank.html
 ledger-*.json
 .DS_Store
+
+# Supabase local config / secrets — never commit
+supabase/.env
+supabase/.temp
+.env
+.env.*
