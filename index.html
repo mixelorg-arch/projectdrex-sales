@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Ledger — Sales &amp; Payroll</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Inter+Tight:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --canvas:#fafaf9; --white:#ffffff; --border:#e8e6e5; --border-muted:#d6d3d1;
+    --ash:#a8a29e; --warm:#78716c; --ink:#0c0a09; --soot:#1c1917;
+    --sky:#c1e1f7; --cyan:#3ba6f1; --cyan-edge:#3398e1;
+    --font-display:'Inter Tight', ui-sans-serif, system-ui, sans-serif;
+    --font-body:'Inter', ui-sans-serif, system-ui, sans-serif;
+    --radius-card:10px; --radius-input:6px; --radius-pill:9999px;
+    --shadow-card:0 4px 16px rgba(0,0,0,.05);
+    --shadow-float:0 12px 45px rgba(17,12,46,.12);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--canvas);color:var(--ink);font-family:var(--font-body);font-size:14px;line-height:1.64;letter-spacing:0.004em;}
+  .wrap{max-width:1200px;margin:0 auto;padding:32px 24px 96px;}
+
+  /* nav */
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:12px 0 40px;}
+  .brand{display:flex;align-items:center;gap:8px;font-family:var(--font-body);font-weight:500;font-size:14px;color:var(--ink);}
+  .brand .dot{width:10px;height:10px;border-radius:2px;background:var(--cyan);display:inline-block;}
+  .month-pill{display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--white);padding:6px 14px;border-radius:var(--radius-pill);font-size:13px;color:var(--warm);}
+  .month-pill select{border:none;background:transparent;font-family:var(--font-body);font-size:13px;color:var(--ink);font-weight:500;}
+  .btn{font-family:var(--font-body);font-size:14px;font-weight:500;padding:8px 16px;border-radius:var(--radius-pill);cursor:pointer;border:1px solid transparent;transition:opacity .15s ease;}
+  .btn:hover{opacity:.85;}
+  .btn-primary{background:var(--cyan);border-color:var(--cyan-edge);color:#fff;}
+  .btn-ghost{background:transparent;border-color:var(--border);color:var(--ink);}
+  .btn-row{display:flex;gap:8px;}
+  .nav-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
+
+  h1,h2,h3{font-family:var(--font-display);font-weight:400;margin:0;}
+  .hl{color:var(--cyan-edge);background:var(--sky);border-radius:4px;padding:2px 8px;}
+
+  /* hero */
+  .hero{margin-bottom:40px;}
+  .hero h1{font-size:36px;line-height:1.2;letter-spacing:-0.02em;max-width:640px;}
+  .hero p{color:var(--warm);max-width:520px;margin:12px 0 0;font-size:16px;line-height:1.69;}
+
+  /* stat cards */
+  .stat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:40px;}
+  .stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-card);padding:20px;box-shadow:var(--shadow-card);}
+  .stat-card .label{font-size:12px;color:var(--ash);margin-bottom:8px;}
+  .stat-card .value{font-family:var(--font-display);font-size:22px;letter-spacing:-0.02em;}
+  .stat-card .value.neg{color:#b3413a;}
+  .stat-card input{border:none;background:transparent;font-family:var(--font-display);font-size:22px;letter-spacing:-0.02em;color:var(--ink);width:100%;padding:0;}
+  .stat-card input:focus{outline:none;}
+
+  /* tabs */
+  .tabs{display:flex;gap:4px;margin-bottom:24px;border:1px solid var(--border);background:var(--white);padding:4px;border-radius:var(--radius-pill);width:fit-content;}
+  .tab{padding:8px 18px;border-radius:var(--radius-pill);font-size:14px;cursor:pointer;color:var(--ink);border:none;background:transparent;font-family:var(--font-body);}
+  .tab.active{background:var(--soot);color:#fff;}
+
+  .section{display:none;}
+  .section.active{display:block;}
+
+  .card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-card);box-shadow:var(--shadow-card);padding:24px;margin-bottom:24px;}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .card-head h3{font-size:20px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;color:var(--ash);font-weight:500;font-size:12px;padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
+  td{padding:10px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
+  tr.week-row td{background:var(--sky);font-weight:500;color:var(--ink);}
+  tr.week-sal-row td{background:#f5f5f4;font-weight:500;color:var(--warm);}
+  tr:hover td{background:#fbfbfa;}
+  tr.week-row:hover td, tr.week-sal-row:hover td{background:var(--sky);}
+  .pill-status{display:inline-block;padding:2px 10px;border-radius:var(--radius-pill);font-size:11px;font-weight:500;}
+  .pill-paid{background:var(--sky);color:var(--cyan-edge);}
+  .pill-unpaid{background:#f5e8d8;color:#9a6a1f;}
+  .pill-closed{background:#f0efed;color:var(--ash);}
+  .row-actions{display:flex;gap:6px;}
+  .icon-btn{border:1px solid var(--border);background:var(--white);width:26px;height:26px;border-radius:6px;cursor:pointer;color:var(--warm);font-size:12px;display:inline-flex;align-items:center;justify-content:center;}
+  .icon-btn:hover{border-color:var(--ash);color:var(--ink);}
+
+  .empty{color:var(--ash);text-align:center;padding:32px 0;font-size:14px;}
+
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(12,10,9,.35);display:none;align-items:center;justify-content:center;z-index:50;}
+  .overlay.active{display:flex;}
+  .modal{background:var(--white);border-radius:16px;box-shadow:var(--shadow-float);padding:28px;width:420px;max-width:92vw;max-height:88vh;overflow-y:auto;}
+  .modal h3{font-size:20px;margin-bottom:18px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12px;color:var(--warm);margin-bottom:5px;}
+  .field input, .field select, .field textarea{width:100%;border:1px solid var(--border-muted);border-radius:var(--radius-input);padding:8px 12px;font-family:var(--font-body);font-size:14px;color:var(--ink);background:var(--white);}
+  .field input:focus, .field select:focus, .field textarea:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 2px rgba(59,166,241,.25);}
+  .field-row{display:flex;gap:10px;}
+  .field-row .field{flex:1;}
+  .checkbox-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;}
+
+  .weekly-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;}
+  .weekly-item{border:1px solid var(--border);border-radius:var(--radius-card);padding:16px;}
+  .weekly-item .wk-label{font-size:12px;color:var(--ash);margin-bottom:6px;}
+  .weekly-item .wk-value{font-family:var(--font-display);font-size:20px;}
+
+  @media (max-width:900px){
+    .nav{flex-direction:column;align-items:flex-start;gap:14px;padding-bottom:28px;}
+    .nav-right{justify-content:flex-start;}
+    .stat-grid{grid-template-columns:repeat(2,1fr);}
+    table{display:block;overflow-x:auto;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="nav">
+    <div class="brand"><span class="dot"></span>Ledger</div>
+    <div class="nav-right">
+      <div class="month-pill">
+        <span>Month</span>
+        <select id="monthLabel"></select>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="exportBtn">Export</button>
+        <button class="btn btn-ghost" id="importBtn">Import</button>
+        <input type="file" id="importFile" accept="application/json,.json" hidden>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero">
+    <h1>Track every sale, every <span class="hl">payout</span>, at a glance.</h1>
+    <p>Daily sales, employee salaries, and expenses for the team — kept in one place instead of a spreadsheet.</p>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="label">Total sales</div>
+      <div class="value" id="statSales">₱0.00</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Salaries paid out</div>
+      <div class="value" id="statSalaries">₱0.00</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Total expenses</div>
+      <div class="value" id="statExpenses">₱0.00</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Net income</div>
+      <div class="value" id="statNet">₱0.00</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Money on hand</div>
+      <input id="statCash" type="text" inputmode="decimal" value="0">
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="overview">Overview</button>
+    <button class="tab" data-tab="sales">Sales log</button>
+    <button class="tab" data-tab="expenses">Expenses</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="section active" id="tab-overview">
+    <div class="card">
+      <div class="card-head"><h3>Weekly breakdown</h3></div>
+      <div class="weekly-grid" id="weeklyGrid"></div>
+    </div>
+  </div>
+
+  <!-- SALES LOG -->
+  <div class="section" id="tab-sales">
+    <div class="card">
+      <div class="card-head">
+        <h3>Sales log</h3>
+        <button class="btn btn-primary" id="addEntryBtn">Add entry</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th><th>Team sales</th><th>Employee</th><th>Ali</th><th>Justine</th>
+            <th>Incentive/OT</th><th>Salary</th><th>Status</th><th>Remarks</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="entriesBody"></tbody>
+      </table>
+      <div class="empty" id="entriesEmpty" style="display:none;">No entries yet — add your first sales day.</div>
+    </div>
+  </div>
+
+  <!-- EXPENSES -->
+  <div class="section" id="tab-expenses">
+    <div class="card">
+      <div class="card-head">
+        <h3>Expenses</h3>
+        <button class="btn btn-primary" id="addExpenseBtn">Add expense</button>
+      </div>
+      <table>
+        <thead><tr><th>Item</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+        <tbody id="expensesBody"></tbody>
+      </table>
+      <div class="empty" id="expensesEmpty" style="display:none;">No expenses logged yet.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Entry modal -->
+<div class="overlay" id="entryOverlay">
+  <div class="modal">
+    <h3 id="entryModalTitle">Add sales entry</h3>
+    <input type="hidden" id="entryId">
+    <div class="field-row">
+      <div class="field"><label>Date</label><input type="date" id="fDate"></div>
+      <div class="field"><label>Team sales (₱)</label><input type="number" id="fTeamSales" placeholder="0"></div>
+    </div>
+    <div class="field"><label>Employee working</label>
+      <select id="fEmployee">
+        <option value="">Closed</option>
+        <option value="Justine">Justine</option>
+        <option value="Ali">Ali</option>
+        <option value="Justine & Ali">Justine &amp; Ali</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Ali (₱)</label><input type="number" id="fAli" placeholder="0"></div>
+      <div class="field"><label>Justine (₱)</label><input type="number" id="fJustine" placeholder="0"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Incentive / OT (₱)</label><input type="number" id="fIncentive" placeholder="0"></div>
+      <div class="field"><label>Salary (₱)</label><input type="number" id="fSalary" placeholder="0"></div>
+    </div>
+    <div class="checkbox-row"><input type="checkbox" id="fPaid"><label for="fPaid">Salary paid</label></div>
+    <div class="field"><label>Remarks</label><input type="text" id="fRemarks" placeholder="e.g. halfday, closed"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="entryCancel">Cancel</button>
+      <button class="btn btn-primary" id="entrySave">Save entry</button>
+    </div>
+  </div>
+</div>
+
+<!-- Expense modal -->
+<div class="overlay" id="expenseOverlay">
+  <div class="modal">
+    <h3 id="expenseModalTitle">Add expense</h3>
+    <input type="hidden" id="eId">
+    <div class="field"><label>Item</label><input type="text" id="eName" placeholder="e.g. rent, internet"></div>
+    <div class="field"><label>Amount (₱)</label><input type="number" id="eAmount" placeholder="0"></div>
+    <div class="checkbox-row"><input type="checkbox" id="ePaid"><label for="ePaid">Paid</label></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="expenseCancel">Cancel</button>
+      <button class="btn btn-primary" id="expenseSave">Save expense</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const peso = n => '₱' + (Number(n)||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const STORE_KEY = 'ledger-data-v1';
+
+let state = {
+  cash: -1387,
+  entries: [
+    {id:'1',date:'2026-08-03',teamSales:1121,employee:'Justine',ali:0,justine:450,incentive:0,salary:450,paid:true,remarks:''},
+    {id:'2',date:'2026-08-04',teamSales:811,employee:'Justine',ali:0,justine:450,incentive:0,salary:450,paid:true,remarks:''},
+    {id:'3',date:'2026-08-05',teamSales:1091,employee:'Justine & Ali',ali:250,justine:225,incentive:0,salary:475,paid:true,remarks:'J paid'},
+    {id:'4',date:'2026-08-06',teamSales:531,employee:'Ali',ali:250,justine:0,incentive:0,salary:250,paid:true,remarks:'halfday'},
+    {id:'5',date:'2026-08-07',teamSales:242,employee:'Ali',ali:250,justine:0,incentive:0,salary:250,paid:false,remarks:'halfday'},
+    {id:'6',date:'2026-08-10',teamSales:0,employee:'',ali:0,justine:0,incentive:0,salary:0,paid:false,remarks:'closed'},
+    {id:'7',date:'2026-08-11',teamSales:0,employee:'',ali:0,justine:0,incentive:0,salary:0,paid:false,remarks:'closed'},
+    {id:'8',date:'2026-08-12',teamSales:1139,employee:'Justine',ali:0,justine:450,incentive:0,salary:450,paid:false,remarks:''},
+    {id:'9',date:'2026-08-13',teamSales:758,employee:'Ali',ali:400,justine:0,incentive:0,salary:400,paid:true,remarks:''},
+    {id:'10',date:'2026-08-14',teamSales:1017,employee:'Justine',ali:0,justine:450,incentive:0,salary:450,paid:false,remarks:''},
+    {id:'11',date:'2026-08-17',teamSales:748,employee:'Justine',ali:0,justine:400,incentive:0,salary:400,paid:true,remarks:''},
+    {id:'12',date:'2026-08-18',teamSales:1448,employee:'Justine',ali:0,justine:450,incentive:0,salary:450,paid:true,remarks:''},
+    {id:'13',date:'2026-08-19',teamSales:376,employee:'Justine',ali:0,justine:200,incentive:0,salary:200,paid:true,remarks:'halfday'},
+    {id:'14',date:'2026-08-20',teamSales:0,employee:'',ali:0,justine:0,incentive:0,salary:0,paid:false,remarks:'closed'},
+    {id:'15',date:'2026-08-21',teamSales:0,employee:'',ali:0,justine:0,incentive:0,salary:0,paid:false,remarks:'closed'},
+    {id:'16',date:'2026-08-24',teamSales:1859,employee:'Justine',ali:0,justine:500,incentive:150,salary:650,paid:true,remarks:''},
+    {id:'17',date:'2026-08-25',teamSales:1048,employee:'Ali',ali:500,justine:0,incentive:0,salary:500,paid:true,remarks:''},
+    {id:'18',date:'2026-08-26',teamSales:1030,employee:'Justine',ali:0,justine:450,incentive:0,salary:450,paid:false,remarks:''},
+    {id:'19',date:'2026-08-27',teamSales:1137,employee:'Ali',ali:0,justine:450,incentive:0,salary:450,paid:false,remarks:''},
+    {id:'20',date:'2026-08-28',teamSales:711,employee:'',ali:0,justine:0,incentive:0,salary:0,paid:false,remarks:''},
+  ],
+  expenses: [
+    {id:'e1',name:'Rent',amount:11000,paid:true},
+    {id:'e2',name:'Water',amount:0,paid:false},
+    {id:'e3',name:'Electricity',amount:0,paid:false},
+    {id:'e4',name:'Internet',amount:1299,paid:true},
+    {id:'e5',name:'Pizza',amount:95,paid:true},
+    {id:'e6',name:'Accounting',amount:3000,paid:true},
+  ]
+};
+
+function uid(prefix){
+  return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw) state = Object.assign(state, JSON.parse(raw));
+  }catch(e){ /* no saved data yet — use defaults */ }
+  migrate();
+  render();
+}
+function saveState(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+  catch(e){
+    console.error('save failed', e);
+    alert('Could not save \u2014 browser storage is full or blocked.');
+  }
+}
+function migrate(){
+  state.entries.forEach(e=>{ if(!e.id) e.id = uid('s'); });
+  state.expenses.forEach(e=>{ if(!e.id) e.id = uid('x'); if(!e.month) e.month = '2026-08'; });
+  const months = monthsAvailable();
+  if(!state.month || months.indexOf(state.month) === -1) state.month = defaultMonth(months);
+}
+
+function weekOf(dateStr){
+  const day = parseInt(dateStr.split('-')[2],10);
+  return Math.ceil(day/7);
+}
+function fmtDate(dateStr){
+  const d = new Date(dateStr+'T00:00:00');
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+function monthKey(dateStr){ return (dateStr||'').slice(0,7); }
+function monthName(key){
+  const parts = key.split('-');
+  return new Date(Number(parts[0]), Number(parts[1])-1, 1)
+    .toLocaleDateString('en-US',{month:'long',year:'numeric'});
+}
+function thisMonthKey(){
+  const n = new Date();
+  return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');
+}
+function monthsAvailable(){
+  const set = new Set();
+  state.entries.forEach(e=>{ const k = monthKey(e.date); if(k) set.add(k); });
+  state.expenses.forEach(e=>{ if(e.month) set.add(e.month); });
+  set.add(thisMonthKey());
+  return [...set].sort().reverse();
+}
+function defaultMonth(months){
+  // Prefer the most recent month that actually holds entries; otherwise the current month.
+  const withData = months.filter(m=>state.entries.some(e=>monthKey(e.date)===m));
+  return withData[0] || months[0];
+}
+function visibleEntries(){ return state.entries.filter(e=>monthKey(e.date)===state.month); }
+function visibleExpenses(){ return state.expenses.filter(e=>e.month===state.month); }
+
+function computeTotals(){
+  const ent = visibleEntries(), exp = visibleExpenses();
+  const totalSales = ent.reduce((s,e)=>s+Number(e.teamSales||0),0);
+  const totalSalaries = ent.reduce((s,e)=>s+Number(e.salary||0),0);
+  const totalExpenses = exp.reduce((s,e)=>s+Number(e.amount||0),0);
+  const net = totalSales - totalSalaries - totalExpenses;
+  return {totalSales, totalSalaries, totalExpenses, net};
+}
+
+function computeWeeks(){
+  const weeks = {};
+  visibleEntries().forEach(e=>{
+    const w = weekOf(e.date);
+    if(!weeks[w]) weeks[w] = {sales:0, salary:0, entries:[]};
+    weeks[w].sales += Number(e.teamSales||0);
+    weeks[w].salary += Number(e.salary||0);
+    weeks[w].entries.push(e);
+  });
+  return weeks;
+}
+
+function renderMonthSelect(){
+  const sel = document.getElementById('monthLabel');
+  const months = monthsAvailable();
+  sel.innerHTML = months.map(m=>`<option value="${m}">${monthName(m)}</option>`).join('');
+  sel.value = state.month;
+}
+
+function render(){
+  renderMonthSelect();
+  document.getElementById('statCash').value = state.cash;
+  const t = computeTotals();
+  document.getElementById('statSales').textContent = peso(t.totalSales);
+  document.getElementById('statSalaries').textContent = peso(t.totalSalaries);
+  document.getElementById('statExpenses').textContent = peso(t.totalExpenses);
+  const netEl = document.getElementById('statNet');
+  netEl.textContent = peso(t.net);
+  netEl.className = 'value' + (t.net<0?' neg':'');
+
+  renderEntries();
+  renderExpenses();
+  renderWeekly();
+}
+
+function renderEntries(){
+  const body = document.getElementById('entriesBody');
+  const sorted = [...visibleEntries()].sort((a,b)=>a.date.localeCompare(b.date));
+  body.innerHTML = '';
+  if(sorted.length===0){ document.getElementById('entriesEmpty').style.display='block'; return; }
+  document.getElementById('entriesEmpty').style.display='none';
+
+  let currentWeek = null;
+  const weeks = computeWeeks();
+
+  sorted.forEach(e=>{
+    const w = weekOf(e.date);
+    if(w !== currentWeek){
+      if(currentWeek !== null){
+        appendWeekSummaryRows(body, currentWeek, weeks[currentWeek]);
+      }
+      currentWeek = w;
+    }
+    const tr = document.createElement('tr');
+    const closed = !e.employee && Number(e.teamSales)===0 && (e.remarks||'').toLowerCase().includes('closed');
+    const statusPill = closed
+      ? '<span class="pill-status pill-closed">Closed</span>'
+      : (e.salary>0 ? `<span class="pill-status ${e.paid?'pill-paid':'pill-unpaid'}">${e.paid?'Paid':'Unpaid'}</span>` : '');
+    tr.innerHTML = `
+      <td>${fmtDate(e.date)}</td>
+      <td>${peso(e.teamSales)}</td>
+      <td>${e.employee||'—'}</td>
+      <td>${e.ali?peso(e.ali):'—'}</td>
+      <td>${e.justine?peso(e.justine):'—'}</td>
+      <td>${e.incentive?peso(e.incentive):'—'}</td>
+      <td>${peso(e.salary)}</td>
+      <td>${statusPill}</td>
+      <td>${e.remarks||''}</td>
+      <td><div class="row-actions">
+        <button class="icon-btn" data-edit="${e.id}" title="Edit">✎</button>
+        <button class="icon-btn" data-del="${e.id}" title="Delete">✕</button>
+      </div></td>`;
+    body.appendChild(tr);
+  });
+  if(currentWeek !== null) appendWeekSummaryRows(body, currentWeek, weeks[currentWeek]);
+
+  body.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>openEntryModal(b.dataset.edit)));
+  body.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{
+    state.entries = state.entries.filter(x=>x.id!==b.dataset.del);
+    saveState(); render();
+  }));
+}
+
+function appendWeekSummaryRows(body, weekNum, data){
+  const tr1 = document.createElement('tr');
+  tr1.className = 'week-row';
+  tr1.innerHTML = `<td colspan="6">Week ${weekNum} total</td><td>${peso(data.salary)}</td><td colspan="3"></td>`;
+  body.appendChild(tr1);
+}
+
+function renderExpenses(){
+  const body = document.getElementById('expensesBody');
+  const list = visibleExpenses();
+  body.innerHTML = '';
+  if(list.length===0){ document.getElementById('expensesEmpty').style.display='block'; return; }
+  document.getElementById('expensesEmpty').style.display='none';
+  list.forEach(e=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${e.name}</td>
+      <td>${peso(e.amount)}</td>
+      <td><span class="pill-status ${e.paid?'pill-paid':'pill-unpaid'}">${e.paid?'Paid':'Unpaid'}</span></td>
+      <td><div class="row-actions">
+        <button class="icon-btn" data-eedit="${e.id}" title="Edit">✎</button>
+        <button class="icon-btn" data-edel="${e.id}" title="Delete">✕</button>
+      </div></td>`;
+    body.appendChild(tr);
+  });
+  body.querySelectorAll('[data-eedit]').forEach(b=>b.addEventListener('click',()=>openExpenseModal(b.dataset.eedit)));
+  body.querySelectorAll('[data-edel]').forEach(b=>b.addEventListener('click',()=>{
+    state.expenses = state.expenses.filter(x=>x.id!==b.dataset.edel);
+    saveState(); render();
+  }));
+}
+
+function renderWeekly(){
+  const grid = document.getElementById('weeklyGrid');
+  const weeks = computeWeeks();
+  grid.innerHTML = '';
+  Object.keys(weeks).sort((a,b)=>a-b).forEach(w=>{
+    const d = weeks[w];
+    const net = d.sales - d.salary;
+    const div = document.createElement('div');
+    div.className = 'weekly-item';
+    div.innerHTML = `
+      <div class="wk-label">Week ${w} · sales ${peso(d.sales)} · salary ${peso(d.salary)}</div>
+      <div class="wk-value" style="color:${net<0?'#b3413a':'#0c0a09'}">${peso(net)}</div>`;
+    grid.appendChild(div);
+  });
+  if(Object.keys(weeks).length===0){
+    grid.innerHTML = '<div class="empty">Add sales entries to see weekly totals.</div>';
+  }
+}
+
+/* Tabs */
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
+  });
+});
+
+/* Entry modal */
+const entryOverlay = document.getElementById('entryOverlay');
+function openEntryModal(id){
+  document.getElementById('entryModalTitle').textContent = id ? 'Edit sales entry' : 'Add sales entry';
+  document.getElementById('entryId').value = id || '';
+  if(id){
+    const e = state.entries.find(x=>x.id===id);
+    document.getElementById('fDate').value = e.date;
+    document.getElementById('fTeamSales').value = e.teamSales;
+    document.getElementById('fEmployee').value = e.employee;
+    document.getElementById('fAli').value = e.ali;
+    document.getElementById('fJustine').value = e.justine;
+    document.getElementById('fIncentive').value = e.incentive;
+    document.getElementById('fSalary').value = e.salary;
+    document.getElementById('fPaid').checked = e.paid;
+    document.getElementById('fRemarks').value = e.remarks;
+  } else {
+    ['fDate','fTeamSales','fAli','fJustine','fIncentive','fSalary','fRemarks'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('fEmployee').value = '';
+    document.getElementById('fPaid').checked = false;
+  }
+  entryOverlay.classList.add('active');
+}
+document.getElementById('addEntryBtn').addEventListener('click',()=>openEntryModal(null));
+document.getElementById('entryCancel').addEventListener('click',()=>entryOverlay.classList.remove('active'));
+document.getElementById('entrySave').addEventListener('click',()=>{
+  const date = document.getElementById('fDate').value;
+  if(!date){ alert('Please pick a date.'); return; }
+  const id = document.getElementById('entryId').value;
+  const payload = {
+    id: id || uid('s'),
+    date,
+    teamSales: Number(document.getElementById('fTeamSales').value)||0,
+    employee: document.getElementById('fEmployee').value,
+    ali: Number(document.getElementById('fAli').value)||0,
+    justine: Number(document.getElementById('fJustine').value)||0,
+    incentive: Number(document.getElementById('fIncentive').value)||0,
+    salary: Number(document.getElementById('fSalary').value)||0,
+    paid: document.getElementById('fPaid').checked,
+    remarks: document.getElementById('fRemarks').value,
+  };
+  if(id){
+    const idx = state.entries.findIndex(x=>x.id===id);
+    state.entries[idx] = payload;
+  } else {
+    state.entries.push(payload);
+  }
+  state.month = monthKey(date);
+  saveState(); render();
+  entryOverlay.classList.remove('active');
+});
+
+/* Expense modal */
+const expenseOverlay = document.getElementById('expenseOverlay');
+function openExpenseModal(id){
+  document.getElementById('expenseModalTitle').textContent = id ? 'Edit expense' : 'Add expense';
+  document.getElementById('eId').value = id || '';
+  if(id){
+    const e = state.expenses.find(x=>x.id===id);
+    document.getElementById('eName').value = e.name;
+    document.getElementById('eAmount').value = e.amount;
+    document.getElementById('ePaid').checked = e.paid;
+  } else {
+    document.getElementById('eName').value = '';
+    document.getElementById('eAmount').value = '';
+    document.getElementById('ePaid').checked = false;
+  }
+  expenseOverlay.classList.add('active');
+}
+document.getElementById('addExpenseBtn').addEventListener('click',()=>openExpenseModal(null));
+document.getElementById('expenseCancel').addEventListener('click',()=>expenseOverlay.classList.remove('active'));
+document.getElementById('expenseSave').addEventListener('click',()=>{
+  const name = document.getElementById('eName').value.trim();
+  if(!name){ alert('Please name the expense.'); return; }
+  const id = document.getElementById('eId').value;
+  const existing = id ? state.expenses.find(x=>x.id===id) : null;
+  const payload = {
+    id: id || uid('x'),
+    month: (existing && existing.month) || state.month,
+    name,
+    amount: Number(document.getElementById('eAmount').value)||0,
+    paid: document.getElementById('ePaid').checked,
+  };
+  if(id){
+    const idx = state.expenses.findIndex(x=>x.id===id);
+    state.expenses[idx] = payload;
+  } else {
+    state.expenses.push(payload);
+  }
+  saveState(); render();
+  expenseOverlay.classList.remove('active');
+});
+
+/* Month selector */
+document.getElementById('monthLabel').addEventListener('change', e=>{
+  state.month = e.target.value;
+  saveState(); render();
+});
+
+/* Export / import */
+// On a normal web host the anchor download works; inside the Claude artifact
+// viewer saving is mediated, so use that path when it is offered.
+let downloadsApi = null;
+if(window.claude && typeof window.claude.use === 'function'){
+  window.claude.use('downloads').then(d=>{ downloadsApi = d; }).catch(()=>{});
+}
+document.getElementById('exportBtn').addEventListener('click', async ()=>{
+  const json = JSON.stringify(state,null,2);
+  const filename = 'ledger-' + new Date().toISOString().slice(0,10) + '.json';
+  if(downloadsApi){
+    try{ await downloadsApi.save({filename, data:json}); }
+    catch(err){ if(!err || err.code !== 'declined') alert('Could not save the backup file.'); }
+    return;
+  }
+  const blob = new Blob([json], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+});
+document.getElementById('importBtn').addEventListener('click', ()=>document.getElementById('importFile').click());
+document.getElementById('importFile').addEventListener('change', ev=>{
+  const file = ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const data = JSON.parse(reader.result);
+      if(!Array.isArray(data.entries) || !Array.isArray(data.expenses)) throw new Error('shape');
+      if(!confirm('Replace everything currently in this ledger with the backup file?')) return;
+      state = Object.assign({cash:0, entries:[], expenses:[]}, data);
+      migrate(); saveState(); render();
+    }catch(err){
+      alert('That file is not a Ledger backup.');
+    }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
+});
+
+/* Cash field */
+document.getElementById('statCash').addEventListener('change', e=>{
+  state.cash = Number(e.target.value)||0;
+  saveState();
+});
+
+/* Close modals on backdrop click */
+[entryOverlay, expenseOverlay].forEach(ov=>{
+  ov.addEventListener('click', e=>{ if(e.target===ov) ov.classList.remove('active'); });
+});
+
+loadState();
+</script>
+</body>
+</html>
