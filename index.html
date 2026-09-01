@@ -197,6 +197,9 @@
       <div class="field"><label for="gEmail">Email</label>
         <input type="email" id="gEmail" autocomplete="email" placeholder="you@example.com"></div>
 
+      <div class="field" id="gSharedField" hidden><label for="gShared">Access code</label>
+        <input type="password" id="gShared" autocomplete="current-password" placeholder="The team code"></div>
+
       <div class="field" id="gCodeField" hidden><label for="gCode">6-digit code</label>
         <input type="text" id="gCode" inputmode="numeric" autocomplete="one-time-code"
                maxlength="6" placeholder="123456"></div>
@@ -207,6 +210,7 @@
       <button class="btn btn-primary gate-submit" id="gateSubmit" type="button">Send code</button>
       <button class="gate-link" id="gateAlt" type="button">Use a password instead</button>
       <button class="gate-link" id="gateBack" type="button" hidden>Use a different email</button>
+      <button class="gate-link" id="gatePersonal" type="button" hidden>Sign in with your own account</button>
     </div>
 
     <div id="gatePending" hidden>
@@ -1227,6 +1231,7 @@ document.getElementById('deleteConfirm').addEventListener('click',()=>{
 /* ---------- online sync (only when config.js is filled in) ---------- */
 const CFG = window.LEDGER_CONFIG || {};
 const SYNC_ON = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
+const SHARED_EMAIL = (CFG.sharedEmail || '').trim();
 let sb = null, session = null, syncTimer = null, syncing = false;
 
 // How each local collection maps to its table, in both directions.
@@ -1373,7 +1378,9 @@ async function initSync(){
 // ---- access state: 'connecting' | 'signedout' | 'pending' | 'member' ----
 // Sign-in is a code emailed to you. A password is kept as a fallback, because
 // the email allowance is small and running out of it should not lock anyone out.
-let access = 'connecting', myRole = null, gateStep = 'email', gateFocused = false;
+let access = 'connecting', myRole = null, gateFocused = false;
+// With a team account configured, the code box is what people see first.
+let gateStep = (window.LEDGER_CONFIG && (window.LEDGER_CONFIG.sharedEmail || '').trim()) ? 'shared' : 'email';
 
 const LAST_EMAIL_KEY = 'ledger-last-email';
 function rememberEmail(email){
@@ -1425,37 +1432,48 @@ function renderGate(){
   const emailField = document.getElementById('gEmail');
   if(!emailField.value) emailField.value = lastEmail();
 
-  const codeField = document.getElementById('gCodeField');
-  const pwField   = document.getElementById('gPasswordField');
-  const submit    = document.getElementById('gateSubmit');
-  const alt       = document.getElementById('gateAlt');
-  const back      = document.getElementById('gateBack');
+  const codeField   = document.getElementById('gCodeField');
+  const pwField     = document.getElementById('gPasswordField');
+  const sharedField = document.getElementById('gSharedField');
+  const submit      = document.getElementById('gateSubmit');
+  const alt         = document.getElementById('gateAlt');
+  const back        = document.getElementById('gateBack');
+  const personal    = document.getElementById('gatePersonal');
 
-  codeField.hidden = gateStep !== 'code';
-  pwField.hidden   = gateStep !== 'password';
-  emailField.parentElement.hidden = gateStep === 'code';
+  codeField.hidden   = gateStep !== 'code';
+  pwField.hidden     = gateStep !== 'password';
+  sharedField.hidden = gateStep !== 'shared';
+  emailField.parentElement.hidden = (gateStep === 'code' || gateStep === 'shared');
   back.hidden = gateStep !== 'code';
+  personal.hidden = !(SHARED_EMAIL && gateStep === 'shared');
+  alt.hidden = gateStep === 'shared';
 
-  if(gateStep === 'email'){
+  if(gateStep === 'shared'){
+    title.textContent = 'Enter the access code';
+    sub.textContent = 'One code for the whole team.';
+    submit.textContent = 'Open the ledger';
+  } else if(gateStep === 'email'){
     title.textContent = 'Sign in';
     sub.textContent = 'We will email you a 6-digit code.';
     submit.textContent = 'Send code';
-    alt.hidden = false; alt.textContent = 'Use a password instead';
+    alt.textContent = 'Use a password instead';
   } else if(gateStep === 'code'){
     title.textContent = 'Check your email';
     sub.textContent = 'Code sent to ' + emailField.value;
     submit.textContent = 'Sign in';
-    alt.hidden = false; alt.textContent = 'Send another code';
+    alt.textContent = 'Send another code';
   } else {
     title.textContent = 'Sign in';
     sub.textContent = 'Daily sales and payroll for the team.';
     submit.textContent = 'Sign in';
-    alt.hidden = false; alt.textContent = 'Email me a code instead';
+    alt.textContent = 'Email me a code instead';
   }
 
   if(!gateFocused){
     gateFocused = true;
-    const target = gateStep === 'code' ? 'gCode' : (emailField.value ? (gateStep === 'password' ? 'gPassword' : 'gateSubmit') : 'gEmail');
+    const target = gateStep === 'shared' ? 'gShared'
+                 : gateStep === 'code' ? 'gCode'
+                 : (emailField.value ? (gateStep === 'password' ? 'gPassword' : 'gateSubmit') : 'gEmail');
     setTimeout(()=>{ const el = document.getElementById(target); if(el) el.focus(); }, 40);
   }
 }
@@ -1497,6 +1515,16 @@ document.getElementById('gateSubmit').addEventListener('click', async ()=>{
   btn.disabled = true; btn.textContent = 'Working…';
   gateMsg('');
   try{
+    if(gateStep === 'shared'){
+      const code = document.getElementById('gShared').value;
+      if(!code) throw new Error('Enter the access code.');
+      const { data, error } = await sb.auth.signInWithPassword({ email: SHARED_EMAIL, password: code });
+      if(error) throw new Error(/invalid/i.test(error.message) ? 'That code is not right.' : error.message);
+      session = data.session;
+      await refreshAccess();
+      if(access === 'member') syncNow();
+      return;
+    }
     if(gateStep === 'email'){
       if(!email) throw new Error('Enter your email address.');
       await sendCode(email);
@@ -1552,12 +1580,17 @@ document.getElementById('gateAlt').addEventListener('click', async ()=>{
   }
 });
 
+document.getElementById('gatePersonal').addEventListener('click', ()=>{
+  document.getElementById('gShared').value = '';
+  setStep('email');
+});
+
 document.getElementById('gateBack').addEventListener('click', ()=>{
   document.getElementById('gCode').value = '';
   setStep('email');
 });
 
-['gCode','gPassword','gEmail'].forEach(id=>{
+['gCode','gPassword','gEmail','gShared'].forEach(id=>{
   document.getElementById(id).addEventListener('keydown', e=>{
     if(e.key === 'Enter') document.getElementById('gateSubmit').click();
   });
@@ -1600,7 +1633,8 @@ async function doSignOut(){
   setSyncStatus('signedout');
   document.getElementById('gPassword').value = '';
   document.getElementById('gCode').value = '';
-  setStep('email');
+  document.getElementById('gShared').value = '';
+  setStep(SHARED_EMAIL ? 'shared' : 'email');
 }
 document.getElementById('gateSignOut').addEventListener('click', doSignOut);
 document.getElementById('signOutBtn').addEventListener('click', async ()=>{
