@@ -9,3 +9,4 @@ supabase/.env
 supabase/.temp
 .env
 .env.*
+.cron-secret.local

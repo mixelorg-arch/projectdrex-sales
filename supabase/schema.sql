@@ -122,3 +122,53 @@ end $$;
 --
 --   delete from public.members m using auth.users u
 --   where m.user_id = u.id and u.email = 'them@example.com';
+-- ============================================================
+-- Access control: owner/staff roles and an approval queue.
+-- ============================================================
+
+alter table public.members add column if not exists role text not null default 'staff';
+
+-- Anyone who signs up lands here until an owner lets them in.
+create table if not exists public.access_requests (
+  user_id      uuid primary key references auth.users(id) on delete cascade,
+  email        text,
+  requested_at timestamptz not null default now()
+);
+alter table public.access_requests enable row level security;
+
+-- The first person to sign up owns the ledger. Everyone after waits.
+create or replace function public.claim_first_member()
+returns trigger language plpgsql security definer as $$
+begin
+  if not exists (select 1 from public.members) then
+    insert into public.members (user_id, email, role) values (new.id, new.email, 'owner');
+  else
+    insert into public.access_requests (user_id, email) values (new.id, new.email)
+      on conflict (user_id) do nothing;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.claim_first_member();
+
+create or replace function public.is_owner()
+returns boolean language sql stable security definer as $$
+  select exists (select 1 from public.members where user_id = auth.uid() and role = 'owner');
+$$;
+
+-- Members are readable by members; only an owner can grant or revoke access.
+drop policy if exists read_members   on public.members;
+drop policy if exists manage_members on public.members;
+create policy read_members   on public.members for select using (user_id = auth.uid() or public.is_member());
+create policy manage_members on public.members for all
+  using (public.is_owner()) with check (public.is_owner());
+
+-- You may see your own pending request; owners see and clear them all.
+drop policy if exists own_request     on public.access_requests;
+drop policy if exists owner_requests  on public.access_requests;
+create policy own_request    on public.access_requests for select using (user_id = auth.uid());
+create policy owner_requests on public.access_requests for all
+  using (public.is_owner()) with check (public.is_owner());

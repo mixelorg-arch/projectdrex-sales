@@ -144,6 +144,29 @@
     .stat-grid{grid-template-columns:repeat(2,1fr);}
   }
 
+  /* ---- login gate ---- */
+  .gate{position:fixed;inset:0;background:var(--canvas);display:flex;align-items:center;justify-content:center;padding:24px;z-index:80;}
+  .gate[hidden]{display:none;}
+  .gate-card{background:var(--white);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-float);padding:32px;width:400px;max-width:100%;}
+  .gate-card .brand{margin-bottom:20px;}
+  .gate-card h2{font-family:var(--font-display);font-size:26px;font-weight:400;letter-spacing:-0.02em;margin:0 0 4px;}
+  .gate-sub{color:var(--warm);font-size:14px;margin:0 0 22px;}
+  .gate-tabs{display:flex;gap:4px;border:1px solid var(--border);background:var(--canvas);padding:4px;border-radius:var(--radius-pill);margin-bottom:20px;}
+  .gate-tab{flex:1;padding:7px 0;border:none;background:transparent;border-radius:var(--radius-pill);font-family:var(--font-body);font-size:13px;cursor:pointer;color:var(--warm);}
+  .gate-tab.active{background:var(--soot);color:#fff;}
+  .gate-submit{width:100%;margin-top:6px;}
+  .gate-link{display:block;width:100%;margin-top:12px;border:none;background:transparent;font-family:var(--font-body);font-size:13px;color:var(--cyan-edge);cursor:pointer;text-decoration:underline;}
+  .gate-msg{font-size:13px;margin:14px 0 0;min-height:1em;}
+  .gate-msg.err{color:#b3413a;}
+  .gate-msg.ok{color:#3f6f4a;}
+  .gate-note{color:var(--warm);font-size:14px;margin:0 0 18px;}
+  .gate-foot{color:var(--ash);font-size:12px;margin:18px 0 0;text-align:center;}
+
+  /* ---- admin ---- */
+  .req-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+  .req-row:last-child{border-bottom:none;}
+  .role-tag{font-size:11px;color:var(--cyan-edge);background:var(--sky);border-radius:var(--radius-pill);padding:1px 9px;margin-left:6px;}
+
   /* ---- print / save as PDF ---- */
   #printArea{display:none;}
   @media print{
@@ -164,7 +187,37 @@
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="brand"><span class="dot"></span>Ledger</div>
+    <h2 id="gateTitle">Sign in</h2>
+    <p class="gate-sub" id="gateSub">Daily sales and payroll for the team.</p>
+
+    <div class="gate-tabs" id="gateTabs">
+      <button class="gate-tab active" data-mode="signin" type="button">Sign in</button>
+      <button class="gate-tab" data-mode="register" type="button">Register</button>
+    </div>
+
+    <div id="gateForm">
+      <div class="field"><label for="gEmail">Email</label>
+        <input type="email" id="gEmail" autocomplete="email" placeholder="you@example.com"></div>
+      <div class="field"><label for="gPassword">Password</label>
+        <input type="password" id="gPassword" autocomplete="current-password" placeholder="At least 8 characters"></div>
+      <button class="btn btn-primary gate-submit" id="gateSubmit" type="button">Sign in</button>
+      <button class="gate-link" id="gateMagic" type="button">Email me a sign-in link instead</button>
+    </div>
+
+    <div id="gatePending" hidden>
+      <p class="gate-note" id="gatePendingText">Your account is waiting to be approved.</p>
+      <button class="btn btn-ghost" id="gateSignOut" type="button">Sign out</button>
+    </div>
+
+    <p class="gate-msg" id="gateMsg"></p>
+    <p class="gate-foot" id="gateFoot"></p>
+  </div>
+</div>
+
+<div class="wrap" id="appWrap" hidden>
 
   <div class="nav">
     <div class="brand"><span class="dot"></span>Ledger</div>
@@ -176,7 +229,6 @@
       <div class="sync-pill" id="syncPill" hidden>
         <span class="sync-dot" id="syncDot"></span>
         <span id="syncText">Local only</span>
-        <button id="signInBtn" hidden>Sign in</button>
         <button id="signOutBtn" hidden>Sign out</button>
       </div>
       <div class="btn-row">
@@ -216,6 +268,7 @@
     <button class="tab" data-tab="sales">Sales log</button>
     <button class="tab" data-tab="expenses">Expenses</button>
     <button class="tab" data-tab="people">People</button>
+    <button class="tab" data-tab="admin" id="adminTab" hidden>Admin</button>
   </div>
 
   <!-- OVERVIEW -->
@@ -281,6 +334,19 @@
         </table>
       </div>
       <div class="empty" id="expensesEmpty" style="display:none;">No expenses logged yet.</div>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="section" id="tab-admin">
+    <div class="card">
+      <div class="card-head"><h3>Access requests</h3></div>
+      <div id="requestList"></div>
+      <div class="empty" id="requestEmpty" style="display:none;">Nobody is waiting for access.</div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>Who can use this ledger</h3></div>
+      <div id="memberList"></div>
     </div>
   </div>
 
@@ -352,19 +418,6 @@
   </div>
 </div>
 
-<!-- Sign in modal -->
-<div class="overlay" id="authOverlay">
-  <div class="modal">
-    <h3>Sign in to sync</h3>
-    <p class="danger-note" id="authBlurb">Enter your email and we'll send you a sign-in link. No password to remember.</p>
-    <div class="field"><label for="authEmail">Email</label><input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" id="authCancel">Cancel</button>
-      <button class="btn btn-primary" id="authSend">Send link</button>
-    </div>
-  </div>
-</div>
-
 <!-- Delete month modal -->
 <div class="overlay" id="deleteOverlay">
   <div class="modal">
@@ -392,37 +445,9 @@ function uid(prefix){
 const ALI = 'emp-ali', JUS = 'emp-justine';
 
 let state = {
-  employees: [ {id:ALI, name:'Ali'}, {id:JUS, name:'Justine'} ],
-  entries: [
-    {id:'1', date:'2026-08-03', teamSales:1121, pay:{[JUS]:450}, incentive:0, paid:true,  remarks:''},
-    {id:'2', date:'2026-08-04', teamSales:811,  pay:{[JUS]:450}, incentive:0, paid:true,  remarks:''},
-    {id:'3', date:'2026-08-05', teamSales:1091, pay:{[ALI]:250,[JUS]:225}, incentive:0, paid:true, remarks:'J paid'},
-    {id:'4', date:'2026-08-06', teamSales:531,  pay:{[ALI]:250}, incentive:0, paid:true,  remarks:'halfday'},
-    {id:'5', date:'2026-08-07', teamSales:242,  pay:{[ALI]:250}, incentive:0, paid:false, remarks:'halfday'},
-    {id:'6', date:'2026-08-10', teamSales:0,    pay:{},          incentive:0, paid:false, remarks:'closed'},
-    {id:'7', date:'2026-08-11', teamSales:0,    pay:{},          incentive:0, paid:false, remarks:'closed'},
-    {id:'8', date:'2026-08-12', teamSales:1139, pay:{[JUS]:450}, incentive:0, paid:false, remarks:''},
-    {id:'9', date:'2026-08-13', teamSales:758,  pay:{[ALI]:400}, incentive:0, paid:true,  remarks:''},
-    {id:'10',date:'2026-08-14', teamSales:1017, pay:{[JUS]:450}, incentive:0, paid:false, remarks:''},
-    {id:'11',date:'2026-08-17', teamSales:748,  pay:{[JUS]:400}, incentive:0, paid:true,  remarks:''},
-    {id:'12',date:'2026-08-18', teamSales:1448, pay:{[JUS]:450}, incentive:0, paid:true,  remarks:''},
-    {id:'13',date:'2026-08-19', teamSales:376,  pay:{[JUS]:200}, incentive:0, paid:true,  remarks:'halfday'},
-    {id:'14',date:'2026-08-20', teamSales:0,    pay:{},          incentive:0, paid:false, remarks:'closed'},
-    {id:'15',date:'2026-08-21', teamSales:0,    pay:{},          incentive:0, paid:false, remarks:'closed'},
-    {id:'16',date:'2026-08-24', teamSales:1859, pay:{[JUS]:500}, incentive:150, paid:true, remarks:''},
-    {id:'17',date:'2026-08-25', teamSales:1048, pay:{[ALI]:500}, incentive:0, paid:true,  remarks:''},
-    {id:'18',date:'2026-08-26', teamSales:1030, pay:{[JUS]:450}, incentive:0, paid:false, remarks:''},
-    {id:'19',date:'2026-08-27', teamSales:1137, pay:{[ALI]:0,[JUS]:450}, incentive:0, paid:false, remarks:''},
-    {id:'20',date:'2026-08-28', teamSales:711,  pay:{},          incentive:0, paid:false, remarks:''}
-  ],
-  expenses: [
-    {id:'e1', month:'2026-08', name:'Rent',       amount:11000, paid:true},
-    {id:'e2', month:'2026-08', name:'Water',      amount:0,     paid:false},
-    {id:'e3', month:'2026-08', name:'Electricity',amount:0,     paid:false},
-    {id:'e4', month:'2026-08', name:'Internet',   amount:1299,  paid:true},
-    {id:'e5', month:'2026-08', name:'Pizza',      amount:95,    paid:true},
-    {id:'e6', month:'2026-08', name:'Accounting', amount:3000,  paid:true}
-  ]
+  employees: [],
+  entries: [],
+  expenses: []
 };
 
 /* ---------- dates ---------- */
@@ -1213,7 +1238,6 @@ function setSyncStatus(kind, note){
   text.textContent = note || ({
     ok:'Synced', syncing:'Syncing…', error:'Sync failed', signedout:'Not signed in', offline:'Offline'
   }[kind] || 'Local only');
-  document.getElementById('signInBtn').hidden = !!session;
   document.getElementById('signOutBtn').hidden = !session;
 }
 
@@ -1250,7 +1274,7 @@ async function bootstrapIfEmpty(){
 }
 
 async function syncNow(){
-  if(!sb || !session || syncing) return;
+  if(!sb || !session || syncing || access !== 'member') return;
   if(!navigator.onLine){ setSyncStatus('offline'); return; }
   syncing = true;
   setSyncStatus('syncing');
@@ -1270,72 +1294,269 @@ async function syncNow(){
 }
 
 function scheduleSync(){
-  if(!SYNC_ON || !session) return;
+  if(!SYNC_ON || !session || access !== 'member') return;
   clearTimeout(syncTimer);
   syncTimer = setTimeout(syncNow, 1500);
 }
 
 async function initSync(){
-  if(!SYNC_ON){ setSyncStatus('local'); return; }
+  if(!SYNC_ON){
+    // No backend configured — no gate, the ledger just runs locally.
+    setSyncStatus('local');
+    access = 'member';
+    renderGate();
+    return;
+  }
   setSyncStatus('syncing', 'Connecting…');
   try{
     const mod = await import('https://esm.sh/@supabase/supabase-js@2.45.4');
     sb = mod.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey);
   }catch(e){
     console.error('could not load supabase-js', e);
-    setSyncStatus('error', 'Offline — saved locally');
+    setSyncStatus('error', 'Cannot reach the server');
+    access = 'signedout';
+    renderGate();
+    gateMsg('Cannot reach the server right now. Check your connection and reload.', 'err');
     return;
   }
   const { data } = await sb.auth.getSession();
   session = data ? data.session : null;
-  sb.auth.onAuthStateChange((_evt, s) => {
-    session = s;
-    setSyncStatus(s ? 'ok' : 'signedout');
-    if(s) syncNow();
+  sb.auth.onAuthStateChange((_evt, sess) => {
+    session = sess;
+    setSyncStatus(sess ? 'ok' : 'signedout');
+    refreshAccess().then(()=>{ if(access === 'member') syncNow(); });
   });
+  await refreshAccess();
   setSyncStatus(session ? 'ok' : 'signedout');
-  if(session) syncNow();
+  if(access === 'member') syncNow();
   setInterval(() => { if(session) syncNow(); }, 30000);
   window.addEventListener('online',  () => scheduleSync());
   window.addEventListener('offline', () => setSyncStatus('offline'));
   window.addEventListener('focus',   () => { if(session) scheduleSync(); });
 }
 
-const authOverlay = document.getElementById('authOverlay');
-document.getElementById('signInBtn').addEventListener('click', () => {
-  document.getElementById('authBlurb').textContent =
-    "Enter your email and we'll send you a sign-in link. No password to remember.";
-  authOverlay.classList.add('active');
-  setTimeout(() => document.getElementById('authEmail').focus(), 30);
+// ---- access state: 'connecting' | 'signedout' | 'pending' | 'member' ----
+let access = 'connecting', myRole = null, gateMode = 'signin';
+
+function gateMsg(text, kind){
+  const el = document.getElementById('gateMsg');
+  el.textContent = text || '';
+  el.className = 'gate-msg' + (kind ? ' ' + kind : '');
+}
+
+function renderGate(){
+  const gate = document.getElementById('gate');
+  const app  = document.getElementById('appWrap');
+  const form = document.getElementById('gateForm');
+  const pend = document.getElementById('gatePending');
+  const tabs = document.getElementById('gateTabs');
+
+  if(access === 'member'){
+    gate.hidden = true; app.hidden = false;
+    document.getElementById('adminTab').hidden = (myRole !== 'owner');
+    return;
+  }
+  gate.hidden = false; app.hidden = true;
+
+  const title = document.getElementById('gateTitle');
+  const sub   = document.getElementById('gateSub');
+
+  if(access === 'connecting'){
+    tabs.hidden = true; form.hidden = true; pend.hidden = true;
+    title.textContent = 'Connecting…';
+    sub.textContent = 'One moment.';
+    return;
+  }
+  if(access === 'pending'){
+    tabs.hidden = true; form.hidden = true; pend.hidden = false;
+    title.textContent = 'Almost there';
+    sub.textContent = session ? session.user.email : '';
+    document.getElementById('gatePendingText').textContent =
+      'Your account exists, but someone who already uses this ledger has to let you in. Ask them to approve you, then sign in again.';
+    return;
+  }
+  tabs.hidden = false; form.hidden = false; pend.hidden = true;
+  const registering = gateMode === 'register';
+  title.textContent = registering ? 'Create an account' : 'Sign in';
+  sub.textContent = registering
+    ? 'New accounts need approval before they can see anything.'
+    : 'Daily sales and payroll for the team.';
+  document.getElementById('gateSubmit').textContent = registering ? 'Register' : 'Sign in';
+  document.getElementById('gPassword').setAttribute('autocomplete', registering ? 'new-password' : 'current-password');
+  document.getElementById('gateMagic').hidden = registering;
+}
+
+document.querySelectorAll('.gate-tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.gate-tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    gateMode = t.dataset.mode;
+    gateMsg('');
+    renderGate();
+  });
 });
-document.getElementById('authCancel').addEventListener('click', () => authOverlay.classList.remove('active'));
-document.getElementById('authSend').addEventListener('click', async () => {
-  const email = document.getElementById('authEmail').value.trim();
-  if(!email){ alert('Please enter your email.'); return; }
-  const btn = document.getElementById('authSend');
+
+async function refreshAccess(){
+  if(!session){ access = 'signedout'; myRole = null; renderGate(); return; }
+  try{
+    const { data, error } = await sb.from('members')
+      .select('role').eq('user_id', session.user.id).maybeSingle();
+    if(error) throw error;
+    if(data){ access = 'member'; myRole = data.role; }
+    else    { access = 'pending'; myRole = null; }
+  }catch(err){
+    console.error('access check failed', err);
+    access = 'pending';
+  }
+  renderGate();
+}
+
+document.getElementById('gateSubmit').addEventListener('click', async ()=>{
+  const email = document.getElementById('gEmail').value.trim();
+  const password = document.getElementById('gPassword').value;
+  if(!email || !password){ gateMsg('Enter your email and password.', 'err'); return; }
+  if(gateMode === 'register' && password.length < 8){
+    gateMsg('Use at least 8 characters.', 'err'); return;
+  }
+  const btn = document.getElementById('gateSubmit');
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Working…';
+  gateMsg('');
+  try{
+    if(gateMode === 'register'){
+      const { data, error } = await sb.auth.signUp({
+        email, password, options: { emailRedirectTo: location.href.split('#')[0] }
+      });
+      if(error) throw error;
+      if(data.session){
+        session = data.session;
+        await refreshAccess();
+      } else {
+        gateMsg('Account created. Check your email to confirm it, then sign in.', 'ok');
+      }
+    } else {
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if(error) throw error;
+      session = data.session;
+      await refreshAccess();
+      if(access === 'member') syncNow();
+    }
+  }catch(err){
+    gateMsg(err.message || 'That did not work.', 'err');
+  }finally{
+    btn.disabled = false; btn.textContent = label;
+  }
+});
+
+document.getElementById('gPassword').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') document.getElementById('gateSubmit').click();
+});
+
+// Accounts created before passwords existed — and anyone who forgets theirs —
+// can still get in by email.
+document.getElementById('gateMagic').addEventListener('click', async ()=>{
+  const email = document.getElementById('gEmail').value.trim();
+  if(!email){ gateMsg('Enter your email first.', 'err'); return; }
+  const btn = document.getElementById('gateMagic');
   btn.disabled = true; btn.textContent = 'Sending…';
+  gateMsg('');
   try{
     const { error } = await sb.auth.signInWithOtp({
       email, options: { emailRedirectTo: location.href.split('#')[0] }
     });
     if(error) throw error;
-    document.getElementById('authBlurb').textContent =
-      'Link sent to ' + email + '. Open it on this device to finish signing in.';
+    gateMsg('Link sent to ' + email + '. Open it on this device.', 'ok');
   }catch(err){
-    document.getElementById('authBlurb').textContent = 'Could not send the link: ' + err.message;
+    gateMsg(err.message || 'Could not send the link.', 'err');
   }finally{
-    btn.disabled = false; btn.textContent = 'Send link';
+    btn.disabled = false; btn.textContent = 'Email me a sign-in link instead';
   }
 });
-document.getElementById('signOutBtn').addEventListener('click', async () => {
-  if(!confirm('Sign out? Your data stays on this device.')) return;
+
+async function doSignOut(){
   await sb.auth.signOut();
-  session = null;
+  session = null; access = 'signedout'; myRole = null;
   setSyncStatus('signedout');
+  renderGate();
+}
+document.getElementById('gateSignOut').addEventListener('click', doSignOut);
+document.getElementById('signOutBtn').addEventListener('click', async ()=>{
+  if(!confirm('Sign out? Anything already synced stays in the ledger.')) return;
+  await doSignOut();
 });
 
+/* ---------- admin: who gets in ---------- */
+async function renderAdmin(){
+  if(myRole !== 'owner' || !sb) return;
+  const reqBox = document.getElementById('requestList');
+  const memBox = document.getElementById('memberList');
+  try{
+    const [{ data: reqs }, { data: mems }] = await Promise.all([
+      sb.from('access_requests').select('*').order('requested_at'),
+      sb.from('members').select('*').order('added_at')
+    ]);
+
+    reqBox.innerHTML = '';
+    const list = reqs || [];
+    document.getElementById('requestEmpty').style.display = list.length ? 'none' : 'block';
+    list.forEach(r=>{
+      const row = document.createElement('div');
+      row.className = 'req-row';
+      row.innerHTML = '<div><div class="person-name">' + escapeHtml(r.email||r.user_id) +
+        '</div><div class="person-meta">asked ' + new Date(r.requested_at).toLocaleDateString('en-PH') + '</div></div>';
+      const actions = document.createElement('div');
+      actions.className = 'btn-row';
+      const yes = document.createElement('button');
+      yes.className = 'btn btn-primary'; yes.textContent = 'Let them in';
+      yes.addEventListener('click', async ()=>{
+        yes.disabled = true;
+        const { error } = await sb.from('members').insert({user_id:r.user_id, email:r.email, role:'staff'});
+        if(error){ alert('Could not approve: ' + error.message); yes.disabled = false; return; }
+        await sb.from('access_requests').delete().eq('user_id', r.user_id);
+        renderAdmin();
+      });
+      const no = document.createElement('button');
+      no.className = 'btn btn-ghost'; no.textContent = 'Decline';
+      no.addEventListener('click', async ()=>{
+        if(!confirm('Decline ' + (r.email||'this person') + '?')) return;
+        await sb.from('access_requests').delete().eq('user_id', r.user_id);
+        renderAdmin();
+      });
+      actions.appendChild(yes); actions.appendChild(no);
+      row.appendChild(actions);
+      reqBox.appendChild(row);
+    });
+
+    memBox.innerHTML = '';
+    (mems || []).forEach(m=>{
+      const isMe = session && m.user_id === session.user.id;
+      const row = document.createElement('div');
+      row.className = 'req-row';
+      row.innerHTML = '<div><div class="person-name">' + escapeHtml(m.email||m.user_id) +
+        (m.role==='owner' ? '<span class="role-tag">Owner</span>' : '') +
+        (isMe ? '<span class="role-tag">You</span>' : '') +
+        '</div><div class="person-meta">added ' + new Date(m.added_at).toLocaleDateString('en-PH') + '</div></div>';
+      if(!isMe && m.role !== 'owner'){
+        const rm = document.createElement('button');
+        rm.className = 'btn btn-ghost'; rm.textContent = 'Remove';
+        rm.addEventListener('click', async ()=>{
+          if(!confirm('Remove ' + (m.email||'this person') + ' from the ledger?')) return;
+          const { error } = await sb.from('members').delete().eq('user_id', m.user_id);
+          if(error){ alert('Could not remove: ' + error.message); return; }
+          renderAdmin();
+        });
+        row.appendChild(rm);
+      }
+      memBox.appendChild(row);
+    });
+  }catch(err){
+    console.error('admin load failed', err);
+  }
+}
+document.querySelector('[data-tab="admin"]').addEventListener('click', renderAdmin);
+
 /* ---------- misc ---------- */
-[entryOverlay, expenseOverlay, personOverlay, deleteOverlay, authOverlay].forEach(ov=>{
+[entryOverlay, expenseOverlay, personOverlay, deleteOverlay].forEach(ov=>{
   ov.addEventListener('click', e=>{ if(e.target===ov) ov.classList.remove('active'); });
 });
 document.addEventListener('keydown', e=>{
