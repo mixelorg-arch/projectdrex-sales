@@ -153,10 +153,8 @@
   .gate-card .brand{margin-bottom:20px;}
   .gate-card h2{font-family:var(--font-display);font-size:26px;font-weight:400;letter-spacing:-0.02em;margin:0 0 4px;}
   .gate-sub{color:var(--warm);font-size:14px;margin:0 0 22px;}
-  .gate-tabs{display:flex;gap:4px;border:1px solid var(--border);background:var(--canvas);padding:4px;border-radius:var(--radius-pill);margin-bottom:20px;}
-  .gate-tab{flex:1;padding:7px 0;border:none;background:transparent;border-radius:var(--radius-pill);font-family:var(--font-body);font-size:13px;cursor:pointer;color:var(--warm);}
-  .gate-tab.active{background:var(--soot);color:#fff;}
   .gate-submit{width:100%;margin-top:6px;}
+  #gCode{font-family:var(--font-display);font-size:22px;letter-spacing:0.32em;text-align:center;}
   .gate-link{display:block;width:100%;margin-top:12px;border:none;background:transparent;font-family:var(--font-body);font-size:13px;color:var(--cyan-edge);cursor:pointer;text-decoration:underline;}
   .gate-msg{font-size:13px;margin:14px 0 0;min-height:1em;}
   .gate-msg.err{color:#b3413a;}
@@ -195,18 +193,20 @@
     <h2 id="gateTitle">Sign in</h2>
     <p class="gate-sub" id="gateSub">Daily sales and payroll for the team.</p>
 
-    <div class="gate-tabs" id="gateTabs">
-      <button class="gate-tab active" data-mode="signin" type="button">Sign in</button>
-      <button class="gate-tab" data-mode="register" type="button">Register</button>
-    </div>
-
     <div id="gateForm">
       <div class="field"><label for="gEmail">Email</label>
         <input type="email" id="gEmail" autocomplete="email" placeholder="you@example.com"></div>
-      <div class="field"><label for="gPassword">Password</label>
-        <input type="password" id="gPassword" autocomplete="current-password" placeholder="At least 8 characters"></div>
-      <button class="btn btn-primary gate-submit" id="gateSubmit" type="button">Sign in</button>
-      <button class="gate-link" id="gateMagic" type="button">Email me a sign-in link instead</button>
+
+      <div class="field" id="gCodeField" hidden><label for="gCode">6-digit code</label>
+        <input type="text" id="gCode" inputmode="numeric" autocomplete="one-time-code"
+               maxlength="6" placeholder="123456"></div>
+
+      <div class="field" id="gPasswordField" hidden><label for="gPassword">Password</label>
+        <input type="password" id="gPassword" autocomplete="current-password"></div>
+
+      <button class="btn btn-primary gate-submit" id="gateSubmit" type="button">Send code</button>
+      <button class="gate-link" id="gateAlt" type="button">Use a password instead</button>
+      <button class="gate-link" id="gateBack" type="button" hidden>Use a different email</button>
     </div>
 
     <div id="gatePending" hidden>
@@ -1371,10 +1371,10 @@ async function initSync(){
 }
 
 // ---- access state: 'connecting' | 'signedout' | 'pending' | 'member' ----
-let access = 'connecting', myRole = null, gateMode = 'signin', gateFocused = false;
+// Sign-in is a code emailed to you. A password is kept as a fallback, because
+// the email allowance is small and running out of it should not lock anyone out.
+let access = 'connecting', myRole = null, gateStep = 'email', gateFocused = false;
 
-// Remember the last email signed in with, so it does not have to be retyped.
-// Email only — a password is never stored.
 const LAST_EMAIL_KEY = 'ledger-last-email';
 function rememberEmail(email){
   try{ localStorage.setItem(LAST_EMAIL_KEY, email); }catch(e){ /* storage blocked */ }
@@ -1392,9 +1392,6 @@ function gateMsg(text, kind){
 function renderGate(){
   const gate = document.getElementById('gate');
   const app  = document.getElementById('appWrap');
-  const form = document.getElementById('gateForm');
-  const pend = document.getElementById('gatePending');
-  const tabs = document.getElementById('gateTabs');
 
   if(access === 'member'){
     gate.hidden = true; app.hidden = false;
@@ -1403,53 +1400,72 @@ function renderGate(){
   }
   gate.hidden = false; app.hidden = true;
 
+  const form  = document.getElementById('gateForm');
+  const pend  = document.getElementById('gatePending');
   const title = document.getElementById('gateTitle');
   const sub   = document.getElementById('gateSub');
 
   if(access === 'connecting'){
-    tabs.hidden = true; form.hidden = true; pend.hidden = true;
+    form.hidden = true; pend.hidden = true;
     title.textContent = 'Connecting…';
     sub.textContent = 'One moment.';
     return;
   }
   if(access === 'pending'){
-    tabs.hidden = true; form.hidden = true; pend.hidden = false;
+    form.hidden = true; pend.hidden = false;
     title.textContent = 'Almost there';
     sub.textContent = session ? session.user.email : '';
     document.getElementById('gatePendingText').textContent =
-      'Your account exists, but someone who already uses this ledger has to let you in. Ask them to approve you, then sign in again.';
+      'You are signed in, but someone who already uses this ledger has to let you in. Ask them to approve you, then sign in again.';
     return;
   }
-  tabs.hidden = false; form.hidden = false; pend.hidden = true;
+
+  form.hidden = false; pend.hidden = true;
 
   const emailField = document.getElementById('gEmail');
   if(!emailField.value) emailField.value = lastEmail();
-  if(!gateFocused){
-    gateFocused = true;
-    // Land on whichever field still needs filling in.
-    const target = emailField.value ? 'gPassword' : 'gEmail';
-    setTimeout(()=>document.getElementById(target).focus(), 40);
+
+  const codeField = document.getElementById('gCodeField');
+  const pwField   = document.getElementById('gPasswordField');
+  const submit    = document.getElementById('gateSubmit');
+  const alt       = document.getElementById('gateAlt');
+  const back      = document.getElementById('gateBack');
+
+  codeField.hidden = gateStep !== 'code';
+  pwField.hidden   = gateStep !== 'password';
+  emailField.parentElement.hidden = gateStep === 'code';
+  back.hidden = gateStep !== 'code';
+
+  if(gateStep === 'email'){
+    title.textContent = 'Sign in';
+    sub.textContent = 'We will email you a 6-digit code.';
+    submit.textContent = 'Send code';
+    alt.hidden = false; alt.textContent = 'Use a password instead';
+  } else if(gateStep === 'code'){
+    title.textContent = 'Check your email';
+    sub.textContent = 'Code sent to ' + emailField.value;
+    submit.textContent = 'Sign in';
+    alt.hidden = false; alt.textContent = 'Send another code';
+  } else {
+    title.textContent = 'Sign in';
+    sub.textContent = 'Daily sales and payroll for the team.';
+    submit.textContent = 'Sign in';
+    alt.hidden = false; alt.textContent = 'Email me a code instead';
   }
 
-  const registering = gateMode === 'register';
-  title.textContent = registering ? 'Create an account' : 'Sign in';
-  sub.textContent = registering
-    ? 'New accounts need approval before they can see anything.'
-    : 'Daily sales and payroll for the team.';
-  document.getElementById('gateSubmit').textContent = registering ? 'Register' : 'Sign in';
-  document.getElementById('gPassword').setAttribute('autocomplete', registering ? 'new-password' : 'current-password');
-  document.getElementById('gateMagic').hidden = registering;
+  if(!gateFocused){
+    gateFocused = true;
+    const target = gateStep === 'code' ? 'gCode' : (emailField.value ? (gateStep === 'password' ? 'gPassword' : 'gateSubmit') : 'gEmail');
+    setTimeout(()=>{ const el = document.getElementById(target); if(el) el.focus(); }, 40);
+  }
 }
 
-document.querySelectorAll('.gate-tab').forEach(t=>{
-  t.addEventListener('click',()=>{
-    document.querySelectorAll('.gate-tab').forEach(x=>x.classList.remove('active'));
-    t.classList.add('active');
-    gateMode = t.dataset.mode;
-    gateMsg('');
-    renderGate();
-  });
-});
+function setStep(step){
+  gateStep = step;
+  gateFocused = false;
+  gateMsg('');
+  renderGate();
+}
 
 async function refreshAccess(){
   if(!session){ access = 'signedout'; myRole = null; renderGate(); return; }
@@ -1466,71 +1482,88 @@ async function refreshAccess(){
   renderGate();
 }
 
+async function sendCode(email){
+  const { error } = await sb.auth.signInWithOtp({
+    email, options: { shouldCreateUser: true, emailRedirectTo: location.href.split('#')[0] }
+  });
+  if(error) throw error;
+  rememberEmail(email);
+}
+
 document.getElementById('gateSubmit').addEventListener('click', async ()=>{
-  const email = document.getElementById('gEmail').value.trim();
-  const password = document.getElementById('gPassword').value;
-  if(!email || !password){ gateMsg('Enter your email and password.', 'err'); return; }
-  if(gateMode === 'register' && password.length < 8){
-    gateMsg('Use at least 8 characters.', 'err'); return;
-  }
   const btn = document.getElementById('gateSubmit');
   const label = btn.textContent;
+  const email = document.getElementById('gEmail').value.trim();
   btn.disabled = true; btn.textContent = 'Working…';
   gateMsg('');
   try{
-    if(gateMode === 'register'){
-      const { data, error } = await sb.auth.signUp({
-        email, password, options: { emailRedirectTo: location.href.split('#')[0] }
-      });
+    if(gateStep === 'email'){
+      if(!email) throw new Error('Enter your email address.');
+      await sendCode(email);
+      setStep('code');
+      gateMsg('Code sent. It is good for about an hour.', 'ok');
+      return;
+    }
+    if(gateStep === 'code'){
+      const token = document.getElementById('gCode').value.trim();
+      if(!token) throw new Error('Enter the code from your email.');
+      const { data, error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
       if(error) throw error;
-      rememberEmail(email);
-      if(data.session){
-        session = data.session;
-        await refreshAccess();
-      } else {
-        gateMsg('Account created. Check your email to confirm it, then sign in.', 'ok');
-      }
-    } else {
-      const { data, error } = await sb.auth.signInWithPassword({ email, password });
-      if(error) throw error;
-      rememberEmail(email);
       session = data.session;
+      rememberEmail(email);
       await refreshAccess();
       if(access === 'member') syncNow();
+      return;
     }
-  }catch(err){
-    gateMsg(err.message || 'That did not work.', 'err');
-  }finally{
-    btn.disabled = false; btn.textContent = label;
-  }
-});
-
-document.getElementById('gPassword').addEventListener('keydown', e=>{
-  if(e.key === 'Enter') document.getElementById('gateSubmit').click();
-});
-
-// Accounts created before passwords existed — and anyone who forgets theirs —
-// can still get in by email.
-document.getElementById('gateMagic').addEventListener('click', async ()=>{
-  const email = document.getElementById('gEmail').value.trim();
-  if(!email){ gateMsg('Enter your email first.', 'err'); return; }
-  const btn = document.getElementById('gateMagic');
-  btn.disabled = true; btn.textContent = 'Sending…';
-  gateMsg('');
-  try{
-    const { error } = await sb.auth.signInWithOtp({
-      email, options: { emailRedirectTo: location.href.split('#')[0] }
-    });
+    const password = document.getElementById('gPassword').value;
+    if(!email || !password) throw new Error('Enter your email and password.');
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
     if(error) throw error;
     rememberEmail(email);
-    gateMsg('Link sent to ' + email + '. Open it on this device.', 'ok');
+    session = data.session;
+    await refreshAccess();
+    if(access === 'member') syncNow();
   }catch(err){
-    gateMsg(err.message || 'Could not send the link.', 'err');
+    const m = err.message || 'That did not work.';
+    gateMsg(/rate limit/i.test(m)
+      ? 'Too many emails sent recently — the allowance resets hourly. Use a password instead if you have one.'
+      : m, 'err');
   }finally{
-    btn.disabled = false; btn.textContent = 'Email me a sign-in link instead';
+    btn.disabled = false;
+    if(document.getElementById('gateSubmit').textContent === 'Working…') btn.textContent = label;
   }
 });
 
+document.getElementById('gateAlt').addEventListener('click', async ()=>{
+  if(gateStep === 'email'){ setStep('password'); return; }
+  if(gateStep === 'password'){ setStep('email'); return; }
+  // on the code step this resends
+  const email = document.getElementById('gEmail').value.trim();
+  const btn = document.getElementById('gateAlt');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try{
+    await sendCode(email);
+    gateMsg('Another code is on its way.', 'ok');
+  }catch(err){
+    const m = err.message || 'Could not send another code.';
+    gateMsg(/rate limit/i.test(m) ? 'Too many emails sent recently — the allowance resets hourly.' : m, 'err');
+  }finally{
+    btn.disabled = false; btn.textContent = 'Send another code';
+  }
+});
+
+document.getElementById('gateBack').addEventListener('click', ()=>{
+  document.getElementById('gCode').value = '';
+  setStep('email');
+});
+
+['gCode','gPassword','gEmail'].forEach(id=>{
+  document.getElementById(id).addEventListener('keydown', e=>{
+    if(e.key === 'Enter') document.getElementById('gateSubmit').click();
+  });
+});
+
+/* ---------- account ---------- */
 const accountOverlay = document.getElementById('accountOverlay');
 document.getElementById('accountBtn').addEventListener('click', ()=>{
   document.getElementById('accountWho').textContent =
@@ -1550,7 +1583,7 @@ document.getElementById('acctSave').addEventListener('click', async ()=>{
   try{
     const { error } = await sb.auth.updateUser({ password: pw });
     if(error) throw error;
-    msg.textContent = 'Password set. You can sign in with it from now on.';
+    msg.textContent = 'Password set. You can use it if email is ever unavailable.';
     msg.className = 'gate-msg ok';
     document.getElementById('acctPassword').value = '';
   }catch(err){
@@ -1566,8 +1599,8 @@ async function doSignOut(){
   session = null; access = 'signedout'; myRole = null;
   setSyncStatus('signedout');
   document.getElementById('gPassword').value = '';
-  gateFocused = false;          // focus the password box again on the way back in
-  renderGate();
+  document.getElementById('gCode').value = '';
+  setStep('email');
 }
 document.getElementById('gateSignOut').addEventListener('click', doSignOut);
 document.getElementById('signOutBtn').addEventListener('click', async ()=>{

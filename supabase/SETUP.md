@@ -135,3 +135,24 @@ A `200` and a PDF in the inbox means it works. The same endpoint takes
   by a device with a stale copy.
 * If Supabase is unreachable, or `config.js` is blank, the ledger simply works
   the way it does today.
+
+## Getting a 6-digit code instead of a link
+
+Sign-in asks for your email and then a 6-digit code. Supabase's default email
+template sends a *link* rather than a code, so add the code to it:
+
+**Authentication → Emails → Magic Link**, and include `{{ .Token }}` in the body,
+e.g.
+
+```
+Your Ledger sign-in code is: {{ .Token }}
+
+Or click here: {{ .ConfirmationURL }}
+```
+
+Keep the link line if you like — both work. Without `{{ .Token }}` the email
+carries only a link and there will be no code to type.
+
+Note the built-in mailer allows roughly **two emails an hour**. Point
+**Authentication → Emails → SMTP Settings** at Resend to lift that; until then,
+set yourself a password from the in-app Account panel as a fallback.
