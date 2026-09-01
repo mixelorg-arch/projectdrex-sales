@@ -33,6 +33,9 @@
   .btn:focus-visible{outline:2px solid var(--cyan-edge);outline-offset:2px;}
   .btn-primary{background:var(--cyan);border-color:var(--cyan-edge);color:#fff;}
   .btn-ghost{background:transparent;border-color:var(--border);color:var(--ink);}
+  .btn-danger{background:#b3413a;border-color:#9d3832;color:#fff;}
+  .btn:disabled{opacity:.45;cursor:default;}
+  .btn:disabled:hover{opacity:.45;}
   .btn-row{display:flex;gap:8px;}
   .nav-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
 
@@ -103,6 +106,11 @@
   .pay-row input[type=number]:disabled{background:#f5f5f4;color:var(--ash);}
   .salary-preview{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--border);margin-top:12px;padding-top:12px;font-size:13px;color:var(--warm);}
   .salary-preview strong{font-family:var(--font-display);font-size:18px;color:var(--ink);font-weight:400;}
+
+  .danger-card{border-color:#eddad8;}
+  .danger-note{color:var(--warm);font-size:13px;margin:0 0 16px;max-width:62ch;}
+  .confirm-list{background:#fdf8f8;border:1px solid #eddad8;border-radius:var(--radius-card);padding:12px 16px 12px 30px;margin:0 0 16px;font-size:13px;color:var(--ink);}
+  .confirm-list li{margin:3px 0;}
 
   .weekly-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;}
   .weekly-item{border:1px solid var(--border);border-radius:var(--radius-card);padding:16px;}
@@ -222,6 +230,11 @@
       </div>
       <p class="report-hint">Opens your browser's print dialog — choose <strong>Save as PDF</strong> as the destination.</p>
     </div>
+    <div class="card danger-card">
+      <div class="card-head"><h3>Delete a month</h3></div>
+      <p class="danger-note">Clears every sales entry and expense for the month you are viewing. Export a backup first — there is no undo.</p>
+      <button class="btn btn-danger" id="deleteMonthBtn">Delete this month…</button>
+    </div>
   </div>
 
   <!-- SALES LOG -->
@@ -322,6 +335,20 @@
     <div class="modal-actions">
       <button class="btn btn-ghost" id="personCancel">Cancel</button>
       <button class="btn btn-primary" id="personSave">Save person</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete month modal -->
+<div class="overlay" id="deleteOverlay">
+  <div class="modal">
+    <h3 id="deleteTitle">Delete this month?</h3>
+    <p class="danger-note" id="deleteBlurb"></p>
+    <ul class="confirm-list" id="deleteSummary"></ul>
+    <button class="btn btn-ghost" id="deleteBackup">Export a backup first</button>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="deleteCancel">Cancel</button>
+      <button class="btn btn-danger" id="deleteConfirm">Delete</button>
     </div>
   </div>
 </div>
@@ -1005,7 +1032,7 @@ let downloadsApi = null;
 if(window.claude && typeof window.claude.use === 'function'){
   window.claude.use('downloads').then(d=>{ downloadsApi = d; }).catch(()=>{});
 }
-document.getElementById('exportBtn').addEventListener('click', async ()=>{
+async function exportBackup(){
   const json = JSON.stringify(state,null,2);
   const filename = 'ledger-' + today() + '.json';
   if(downloadsApi){
@@ -1019,7 +1046,8 @@ document.getElementById('exportBtn').addEventListener('click', async ()=>{
   a.download = filename;
   a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
-});
+}
+document.getElementById('exportBtn').addEventListener('click', exportBackup);
 document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('importFile').click());
 document.getElementById('importFile').addEventListener('change', ev=>{
   const file = ev.target.files[0];
@@ -1040,8 +1068,50 @@ document.getElementById('importFile').addEventListener('change', ev=>{
   ev.target.value = '';
 });
 
+/* ---------- delete a whole month ---------- */
+const deleteOverlay = document.getElementById('deleteOverlay');
+function monthRecord(m){
+  return {
+    entries:  state.entries.filter(e=>monthKey(e.date)===m),
+    expenses: state.expenses.filter(e=>e.month===m)
+  };
+}
+function openDeleteModal(){
+  const m = state.month;
+  const rec = monthRecord(m);
+  const t = computeTotals(rec.entries, rec.expenses);
+  const empty = rec.entries.length===0 && rec.expenses.length===0;
+
+  document.getElementById('deleteTitle').textContent = 'Delete ' + monthName(m) + '?';
+  document.getElementById('deleteBlurb').textContent = empty
+    ? 'Nothing has been recorded for ' + monthName(m) + ' yet, so there is nothing to delete.'
+    : 'This permanently clears everything recorded for ' + monthName(m) + '. Other months are untouched. There is no undo — the only way back is a backup file.';
+  document.getElementById('deleteSummary').innerHTML = empty ? '' : `
+    <li><strong>${rec.entries.length}</strong> sales ${rec.entries.length===1?'entry':'entries'} · ${peso(t.totalSales)} in sales</li>
+    <li><strong>${rec.expenses.length}</strong> ${rec.expenses.length===1?'expense':'expenses'} · ${peso(t.totalExpenses)}</li>
+    <li>${peso(t.totalSalaries)} in salaries recorded</li>`;
+
+  const confirmBtn = document.getElementById('deleteConfirm');
+  confirmBtn.textContent = empty ? 'Nothing to delete' : 'Delete ' + monthName(m);
+  confirmBtn.disabled = empty;
+  document.getElementById('deleteBackup').style.display = empty ? 'none' : '';
+  deleteOverlay.classList.add('active');
+}
+document.getElementById('deleteMonthBtn').addEventListener('click', openDeleteModal);
+document.getElementById('deleteCancel').addEventListener('click',()=>deleteOverlay.classList.remove('active'));
+document.getElementById('deleteBackup').addEventListener('click', exportBackup);
+document.getElementById('deleteConfirm').addEventListener('click',()=>{
+  const m = state.month;
+  state.entries  = state.entries.filter(e=>monthKey(e.date)!==m);
+  state.expenses = state.expenses.filter(e=>e.month!==m);
+  // That month may no longer be in the list at all; fall back to the current one.
+  if(!monthsAvailable().includes(m)) state.month = thisMonthKey();
+  saveState(); render();
+  deleteOverlay.classList.remove('active');
+});
+
 /* ---------- misc ---------- */
-[entryOverlay, expenseOverlay, personOverlay].forEach(ov=>{
+[entryOverlay, expenseOverlay, personOverlay, deleteOverlay].forEach(ov=>{
   ov.addEventListener('click', e=>{ if(e.target===ov) ov.classList.remove('active'); });
 });
 document.addEventListener('keydown', e=>{
