@@ -1007,10 +1007,20 @@ document.getElementById('personSave').addEventListener('click',()=>{
   const name = document.getElementById('pName').value.trim();
   if(!name){ alert('Please enter a name.'); return; }
   const id = document.getElementById('pId').value;
-  const clash = state.employees.some(p=>p.name.toLowerCase()===name.toLowerCase() && p.id!==id);
+  const lower = name.toLowerCase();
+  // Only people you can actually see may clash. A removed person is invisible,
+  // so letting their record block the name gives an error with nothing behind it.
+  const clash = live(state.employees).some(p=>p.name.toLowerCase()===lower && p.id!==id);
   if(clash){ alert('There is already someone called '+name+'.'); return; }
-  if(id){ touch(Object.assign(empById(id), {name})); }
-  else { state.employees.push(touch({id: uid('emp-'), name})); }
+  if(id){
+    touch(Object.assign(empById(id), {name}));
+  } else {
+    // Adding back someone you removed brings their record back rather than
+    // leaving a hidden row holding the name hostage.
+    const previous = state.employees.find(p=>p.deleted && p.name.toLowerCase()===lower);
+    if(previous) touch(Object.assign(previous, {name, deleted:false, archived:false}));
+    else state.employees.push(touch({id: uid('emp-'), name}));
+  }
   commit();
   personOverlay.classList.remove('active');
 });
