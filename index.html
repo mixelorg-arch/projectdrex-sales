@@ -147,6 +147,73 @@
     .stat-grid{grid-template-columns:repeat(2,1fr);}
   }
 
+  /* ---- phones and portrait tablets: rows become cards, because the column
+         count grows with every person added and never fits a narrow screen ---- */
+  @media (max-width:820px){
+    .wrap{padding:20px 14px 72px;}
+    .hero{margin-bottom:26px;}
+    .hero h1{font-size:26px;}
+    .hero p{font-size:15px;margin-top:10px;}
+    .card{padding:16px 14px;}
+    .card-head h3{font-size:18px;}
+    .stat-grid{gap:8px;margin-bottom:26px;}
+    .stat-card{padding:14px 12px;}
+    .stat-card .label{font-size:11px;margin-bottom:4px;}
+    .stat-card .value{font-size:18px;}
+
+    /* one line of tabs that scrolls, rather than two that wrap */
+    .tabs{width:100%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+    .tabs::-webkit-scrollbar{display:none;}
+    .tab{white-space:nowrap;padding:8px 14px;}
+
+    .table-scroll{overflow-x:visible;}
+    #tab-sales table, #tab-sales tbody, #tab-sales tr, #tab-sales td,
+    #tab-expenses table, #tab-expenses tbody, #tab-expenses tr, #tab-expenses td{
+      display:block; width:auto;
+    }
+    #tab-sales thead, #tab-expenses thead{display:none;}
+    #tab-sales tbody tr, #tab-expenses tbody tr{
+      border:1px solid var(--border);border-radius:var(--radius-card);
+      padding:10px 14px;margin-bottom:10px;background:var(--white);
+    }
+    #tab-sales td, #tab-expenses td{
+      border:none;padding:4px 0;white-space:normal;
+      display:flex;align-items:baseline;justify-content:space-between;gap:16px;
+    }
+    #tab-sales td::before, #tab-expenses td::before{
+      content:attr(data-label);color:var(--ash);font-size:12px;flex:none;
+    }
+    #tab-sales td:empty, #tab-expenses td:empty,
+    #tab-sales .c-empty, #tab-expenses .c-empty{display:none;}
+
+    /* the date, or the item name, is the card's heading */
+    #tab-sales .c-head, #tab-expenses .c-head{
+      font-family:var(--font-display);font-size:16px;
+      padding-bottom:8px;margin-bottom:4px;border-bottom:1px solid var(--border);
+    }
+    #tab-sales .c-head::before, #tab-expenses .c-head::before{display:none;}
+
+    #tab-sales .c-actions, #tab-expenses .c-actions{
+      justify-content:flex-end;padding-top:10px;margin-top:6px;
+      border-top:1px solid var(--border);
+    }
+    #tab-sales .c-actions::before, #tab-expenses .c-actions::before{display:none;}
+
+    tr.week-row td{background:transparent;}
+    #tab-sales tbody tr.week-row{background:var(--sky);border-color:#a8d3f0;}
+    #tab-sales tr.week-row .c-head{border-bottom-color:#a8d3f0;margin-bottom:0;padding-bottom:6px;}
+    tr:hover td{background:transparent;}
+
+    /* thumbs, not cursors */
+    .icon-btn{width:36px;height:36px;font-size:14px;}
+    .btn{padding:10px 18px;}
+    .modal{padding:22px 18px;border-radius:14px;}
+    .field input, .field select{padding:10px 12px;font-size:16px;} /* 16px stops iOS zooming on focus */
+    .pay-row{grid-template-columns:22px 1fr 96px;}
+    .report-controls .field{min-width:0;flex:1 1 140px;}
+    .weekly-grid{grid-template-columns:1fr;}
+  }
+
   /* ---- login gate ---- */
   .gate{position:fixed;inset:0;background:var(--canvas);display:flex;align-items:center;justify-content:center;padding:24px;z-index:80;}
   .gate-card{background:var(--white);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-float);padding:32px;width:400px;max-width:100%;}
@@ -709,19 +776,21 @@ function renderEntries(){
       : (salaryOf(e)>0 ? `<span class="pill-status ${e.paid?'pill-paid':'pill-unpaid'}">${e.paid?'Paid':'Unpaid'}</span>` : '');
     const payCells = cols.map(c=>{
       const has = e.pay && (c.id in e.pay);
-      if(!has) return '<td>—</td>';
-      return `<td>${peso(e.pay[c.id])}</td>`;
+      const label = escapeHtml(c.name);
+      // Cells marked c-empty are dropped on phones — "Ali —" is noise on a card.
+      if(!has) return `<td class="c-empty" data-label="${label}">—</td>`;
+      return `<td data-label="${label}">${peso(e.pay[c.id])}</td>`;
     }).join('');
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${fmtDate(e.date)}</td>
-      <td>${peso(e.teamSales)}</td>
+      <td data-label="Date" class="c-head">${fmtDate(e.date)}</td>
+      <td data-label="Team sales">${peso(e.teamSales)}</td>
       ${payCells}
-      <td>${e.incentive?peso(e.incentive):'—'}</td>
-      <td>${peso(salaryOf(e))}</td>
-      <td>${statusPill}</td>
-      <td>${escapeHtml(e.remarks||'')}</td>
-      <td><div class="row-actions">
+      <td data-label="Incentive/OT"${e.incentive?'':' class="c-empty"'}>${e.incentive?peso(e.incentive):'—'}</td>
+      <td data-label="Salary">${peso(salaryOf(e))}</td>
+      <td data-label="Status">${statusPill}</td>
+      <td data-label="Remarks">${escapeHtml(e.remarks||'')}</td>
+      <td class="c-actions"><div class="row-actions">
         <button class="icon-btn" data-edit="${e.id}" title="Edit" aria-label="Edit entry">✎</button>
         <button class="icon-btn" data-del="${e.id}" title="Delete" aria-label="Delete entry">✕</button>
       </div></td>`;
@@ -741,8 +810,8 @@ function appendWeekRow(body, wkStart, data, totalCols, payColCount){
   const tr = document.createElement('tr');
   tr.className = 'week-row';
   const lead = 2 + payColCount + 1;           // date + sales + pay cols + incentive
-  tr.innerHTML = `<td colspan="${lead}">Week of ${weekLabel(wkStart)} · sales ${peso(data.sales)}</td>`
-               + `<td>${peso(data.salary)}</td>`
+  tr.innerHTML = `<td colspan="${lead}" class="c-head">Week of ${weekLabel(wkStart)} · sales ${peso(data.sales)}</td>`
+               + `<td data-label="Salary">${peso(data.salary)}</td>`
                + `<td colspan="${totalCols-lead-1}"></td>`;
   body.appendChild(tr);
 }
@@ -756,10 +825,10 @@ function renderExpenses(){
   list.forEach(e=>{
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${escapeHtml(e.name)}</td>
-      <td>${peso(e.amount)}</td>
-      <td><span class="pill-status ${e.paid?'pill-paid':'pill-unpaid'}">${e.paid?'Paid':'Unpaid'}</span></td>
-      <td><div class="row-actions">
+      <td data-label="Item" class="c-head">${escapeHtml(e.name)}</td>
+      <td data-label="Amount">${peso(e.amount)}</td>
+      <td data-label="Status"><span class="pill-status ${e.paid?'pill-paid':'pill-unpaid'}">${e.paid?'Paid':'Unpaid'}</span></td>
+      <td class="c-actions"><div class="row-actions">
         <button class="icon-btn" data-eedit="${e.id}" title="Edit" aria-label="Edit expense">✎</button>
         <button class="icon-btn" data-edel="${e.id}" title="Delete" aria-label="Delete expense">✕</button>
       </div></td>`;
