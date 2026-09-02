@@ -234,6 +234,66 @@
   .req-row:last-child{border-bottom:none;}
   .role-tag{font-size:11px;color:var(--cyan-edge);background:var(--sky);border-radius:var(--radius-pill);padding:1px 9px;margin-left:6px;}
 
+  /* ---- phones proper: tighten everything so more than two days fit ---- */
+  @media (max-width:480px){
+    .wrap{padding:14px 12px 64px;}
+    .nav{gap:10px;padding:6px 0 18px;}
+    .month-pill, .sync-pill{padding:5px 12px;font-size:12px;}
+    .hero{margin-bottom:18px;}
+    .hero h1{font-size:20px;line-height:1.25;}
+    .hero p{font-size:12.5px;line-height:1.5;margin-top:7px;}
+    .hl{padding:1px 5px;}
+
+    .stat-grid{gap:7px;margin-bottom:18px;}
+    .stat-card{padding:11px 10px;border-radius:8px;}
+    .stat-card .label{font-size:10px;margin-bottom:3px;}
+    .stat-card .value{font-size:16px;}
+
+    /* five tabs on a 393px screen: tight enough to fit, so the strip does not
+       clip a word and look broken. It still scrolls if a longer label appears. */
+    .tabs{margin-bottom:14px;padding:3px;gap:2px;}
+    .tab{padding:7px 9px;font-size:12.5px;}
+
+    .card{padding:13px 12px;margin-bottom:14px;}
+    .card-head{margin-bottom:12px;}
+    .card-head h3{font-size:16px;}
+    .btn{padding:9px 15px;font-size:13.5px;}
+
+    #tab-sales tbody tr, #tab-expenses tbody tr{padding:9px 12px;margin-bottom:8px;}
+    #tab-sales td, #tab-expenses td{padding:3px 0;font-size:12.5px;}
+    #tab-sales td::before, #tab-expenses td::before{font-size:11.5px;}
+    #tab-sales .c-head, #tab-expenses .c-head{font-size:15px;padding-bottom:6px;margin-bottom:3px;}
+    #tab-sales .c-actions, #tab-expenses .c-actions{padding-top:8px;margin-top:4px;}
+    .icon-btn{width:34px;height:34px;}
+    .pill-status{font-size:10.5px;padding:2px 8px;}
+
+    /* Text boxes: shorter via padding, but the type stays 16px — anything
+       smaller makes iOS zoom the page in every time a field is focused. */
+    .field input, .field select, .field textarea{padding:7px 10px;}
+    .field{margin-bottom:10px;}
+    .field label{font-size:11.5px;margin-bottom:3px;}
+    .field-row{gap:8px;}
+
+    .modal{padding:18px 15px;border-radius:12px;}
+    .modal h3{font-size:18px;margin-bottom:12px;}
+    .modal-actions{margin-top:14px;}
+    .sub-label{margin:12px 0 6px;}
+    .pay-row{margin-bottom:6px;grid-template-columns:20px 1fr 88px;gap:8px;}
+    .pay-row .name{font-size:13.5px;}
+    .pay-row input[type=number]{padding:6px 8px;font-size:16px;}
+    .checkbox-row{margin-bottom:10px;}
+    .salary-preview{margin-top:10px;padding-top:10px;font-size:12.5px;}
+    .salary-preview strong{font-size:16px;}
+
+    .weekly-item{padding:13px 12px;}
+    .weekly-item .wk-value{font-size:18px;}
+    .report-hint, .danger-note{font-size:12.5px;}
+
+    .gate-card{padding:24px 20px;}
+    .gate-card h2{font-size:22px;}
+    .gate-sub{font-size:13px;margin-bottom:18px;}
+  }
+
   /* ---- print / save as PDF ---- */
   #printArea{display:none;}
   @media print{
