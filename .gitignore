@@ -10,3 +10,4 @@ supabase/.temp
 .env
 .env.*
 .cron-secret.local
+.claude/

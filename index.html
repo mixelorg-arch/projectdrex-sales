@@ -55,6 +55,7 @@
   /* hero */
   .hero{margin-bottom:40px;}
   .hero h1{font-size:36px;line-height:1.2;letter-spacing:-0.02em;max-width:640px;text-wrap:balance;}
+  .staff-note{background:var(--sky);color:var(--cyan-edge);border-radius:8px;padding:9px 13px;font-size:12.5px;margin:0 0 14px;}
   .hero p{color:var(--warm);max-width:520px;margin:12px 0 0;font-size:16px;line-height:1.69;}
 
   /* stat cards */
@@ -221,6 +222,9 @@
   .gate-card h2{font-family:var(--font-display);font-size:26px;font-weight:400;letter-spacing:-0.02em;margin:0 0 4px;}
   .gate-sub{color:var(--warm);font-size:14px;margin:0 0 22px;}
   .gate-submit{width:100%;margin-top:6px;}
+  .gate-tabs{display:flex;gap:4px;border:1px solid var(--border);background:var(--canvas);padding:4px;border-radius:var(--radius-pill);margin-bottom:20px;}
+  .gate-tab{flex:1;padding:7px 0;border:none;background:transparent;border-radius:var(--radius-pill);font-family:var(--font-body);font-size:13px;cursor:pointer;color:var(--warm);}
+  .gate-tab.active{background:var(--soot);color:#fff;}
   #gCode{font-family:var(--font-display);font-size:22px;letter-spacing:0.32em;text-align:center;}
   .gate-link{display:block;width:100%;margin-top:12px;border:none;background:transparent;font-family:var(--font-body);font-size:13px;color:var(--cyan-edge);cursor:pointer;text-decoration:underline;}
   .gate-msg{font-size:13px;margin:14px 0 0;min-height:1em;}
@@ -320,24 +324,15 @@
     <h2 id="gateTitle">Sign in</h2>
     <p class="gate-sub" id="gateSub">Daily sales and payroll for the team.</p>
 
+    <div class="gate-tabs" id="roleTabs">
+      <button class="gate-tab active" data-role="staff" type="button">Staff</button>
+      <button class="gate-tab" data-role="admin" type="button">Admin</button>
+    </div>
+
     <div id="gateForm">
-      <div class="field"><label for="gEmail">Email</label>
-        <input type="email" id="gEmail" autocomplete="email" placeholder="you@example.com"></div>
-
-      <div class="field" id="gSharedField" hidden><label for="gShared">Access code</label>
-        <input type="password" id="gShared" autocomplete="current-password" placeholder="The team code"></div>
-
-      <div class="field" id="gCodeField" hidden><label for="gCode">6-digit code</label>
-        <input type="text" id="gCode" inputmode="numeric" autocomplete="one-time-code"
-               maxlength="6" placeholder="123456"></div>
-
-      <div class="field" id="gPasswordField" hidden><label for="gPassword">Password</label>
-        <input type="password" id="gPassword" autocomplete="current-password"></div>
-
-      <button class="btn btn-primary gate-submit" id="gateSubmit" type="button">Send code</button>
-      <button class="gate-link" id="gateAlt" type="button">Use a password instead</button>
-      <button class="gate-link" id="gateBack" type="button" hidden>Use a different email</button>
-      <button class="gate-link" id="gatePersonal" type="button" hidden>Sign in with your own account</button>
+      <div class="field"><label for="gShared">Access code</label>
+        <input type="password" id="gShared" autocomplete="current-password" placeholder="Your code"></div>
+      <button class="btn btn-primary gate-submit" id="gateSubmit" type="button">Open the ledger</button>
     </div>
 
     <div id="gatePending" hidden>
@@ -374,6 +369,7 @@
   </div>
 
   <div class="hero">
+    <p class="staff-note" id="staffNote" hidden>Signed in as staff — you can add and correct entries. Removing days, months or people is admin only.</p>
     <h1>Track every sale, every <span class="hl">payout</span>, at a glance.</h1>
     <p>Daily sales, employee salaries, and expenses for the team — kept in one place instead of a spreadsheet.</p>
   </div>
@@ -430,7 +426,7 @@
       </div>
       <p class="report-hint">Opens your browser's print dialog — choose <strong>Save as PDF</strong> as the destination.</p>
     </div>
-    <div class="card danger-card">
+    <div class="card danger-card" id="dangerCard">
       <div class="card-head"><h3>Delete a month</h3></div>
       <p class="danger-note">Clears every sales entry and expense for the month you are viewing. Export a backup first — there is no undo.</p>
       <button class="btn btn-danger" id="deleteMonthBtn">Delete this month…</button>
@@ -572,13 +568,15 @@
   <div class="modal">
     <h3>Your account</h3>
     <p class="danger-note" id="accountWho"></p>
-    <div class="field"><label for="acctPassword">Set a password</label>
-      <input type="password" id="acctPassword" autocomplete="new-password" placeholder="At least 8 characters"></div>
-    <p class="report-hint">A password lets you sign in without waiting for an email — worth setting, because the free email allowance runs out quickly.</p>
+    <div id="acctPwWrap" hidden>
+      <div class="field"><label for="acctPassword">Change the admin code</label>
+        <input type="password" id="acctPassword" autocomplete="new-password" placeholder="At least 8 characters"></div>
+      <p class="report-hint">This replaces the admin code for everyone immediately.</p>
+    </div>
     <p class="gate-msg" id="acctMsg"></p>
     <div class="modal-actions">
       <button class="btn btn-ghost" id="accountCancel">Close</button>
-      <button class="btn btn-primary" id="acctSave">Save password</button>
+      <button class="btn btn-primary" id="acctSave">Save code</button>
     </div>
   </div>
 </div>
@@ -791,7 +789,20 @@ function renderMonthSelect(){
   sel.value = state.month;
 }
 
+// What staff may not touch: anything that rewrites figures already recorded.
+function applyRole(){
+  const admin = isAdmin();
+  const set = (id, shown) => { const el = document.getElementById(id); if(el) el.hidden = !shown; };
+  set('dangerCard', admin);     // delete a whole month
+  set('importBtn', admin);      // replaces the entire ledger
+  set('addPersonBtn', admin);
+  set('adminTab', admin);
+  const note = document.getElementById('staffNote');
+  if(note) note.hidden = admin;
+}
+
 function render(){
+  applyRole();
   renderMonthSelect();
   const t = computeTotals(visibleEntries(), visibleExpenses());
   document.getElementById('statSales').textContent    = peso(t.totalSales);
@@ -852,7 +863,7 @@ function renderEntries(){
       <td data-label="Remarks">${escapeHtml(e.remarks||'')}</td>
       <td class="c-actions"><div class="row-actions">
         <button class="icon-btn" data-edit="${e.id}" title="Edit" aria-label="Edit entry">✎</button>
-        <button class="icon-btn" data-del="${e.id}" title="Delete" aria-label="Delete entry">✕</button>
+        ${isAdmin() ? `<button class="icon-btn" data-del="${e.id}" title="Delete" aria-label="Delete entry">✕</button>` : ''}
       </div></td>`;
     body.appendChild(tr);
   });
@@ -890,7 +901,7 @@ function renderExpenses(){
       <td data-label="Status"><span class="pill-status ${e.paid?'pill-paid':'pill-unpaid'}">${e.paid?'Paid':'Unpaid'}</span></td>
       <td class="c-actions"><div class="row-actions">
         <button class="icon-btn" data-eedit="${e.id}" title="Edit" aria-label="Edit expense">✎</button>
-        <button class="icon-btn" data-edel="${e.id}" title="Delete" aria-label="Delete expense">✕</button>
+        ${isAdmin() ? `<button class="icon-btn" data-edel="${e.id}" title="Delete" aria-label="Delete expense">✕</button>` : ''}
       </div></td>`;
     body.appendChild(tr);
   });
@@ -941,11 +952,11 @@ function renderPeople(){
         <div class="person-name">${escapeHtml(p.name)}${p.archived?' <span class="pill-status pill-closed">Archived</span>':''}</div>
         <div class="person-meta">${days} day${days===1?'':'s'} logged · ${peso(paid)} total</div>
       </div>
-      <div class="row-actions">
+      ${isAdmin() ? `<div class="row-actions">
         <button class="icon-btn" data-pedit="${p.id}" title="Rename" aria-label="Rename person">✎</button>
         <button class="icon-btn" data-parch="${p.id}" title="${p.archived?'Restore':'Archive'}" aria-label="Archive person">${p.archived?'↩':'⌫'}</button>
         <button class="icon-btn" data-pdel="${p.id}" title="Delete" aria-label="Delete person">✕</button>
-      </div>`;
+      </div>` : ''}`;
     box.appendChild(row);
   });
   box.querySelectorAll('[data-pedit]').forEach(b=>b.addEventListener('click',()=>openPersonModal(b.dataset.pedit)));
@@ -1370,7 +1381,8 @@ document.getElementById('deleteConfirm').addEventListener('click',()=>{
 /* ---------- online sync (only when config.js is filled in) ---------- */
 const CFG = window.LEDGER_CONFIG || {};
 const SYNC_ON = !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
-const SHARED_EMAIL = (CFG.sharedEmail || '').trim();
+const STAFF_EMAIL = (CFG.staffEmail || '').trim();
+const ADMIN_EMAIL = (CFG.adminEmail || '').trim();
 let sb = null, session = null, syncTimer = null, syncing = false;
 
 // How each local collection maps to its table, in both directions.
@@ -1515,19 +1527,11 @@ async function initSync(){
 }
 
 // ---- access state: 'connecting' | 'signedout' | 'pending' | 'member' ----
-// Sign-in is a code emailed to you. A password is kept as a fallback, because
-// the email allowance is small and running out of it should not lock anyone out.
-let access = 'connecting', myRole = null, gateFocused = false;
-// With a team account configured, the code box is what people see first.
-let gateStep = (window.LEDGER_CONFIG && (window.LEDGER_CONFIG.sharedEmail || '').trim()) ? 'shared' : 'email';
+// Two shared logins. Which code you type decides what you may change: staff
+// enter the day's figures, admin can also correct and remove them.
+let access = 'connecting', myRole = null, gateRole = 'staff', gateFocused = false;
 
-const LAST_EMAIL_KEY = 'ledger-last-email';
-function rememberEmail(email){
-  try{ localStorage.setItem(LAST_EMAIL_KEY, email); }catch(e){ /* storage blocked */ }
-}
-function lastEmail(){
-  try{ return localStorage.getItem(LAST_EMAIL_KEY) || ''; }catch(e){ return ''; }
-}
+const isAdmin = () => myRole === 'owner';
 
 function gateMsg(text, kind){
   const el = document.getElementById('gateMsg');
@@ -1541,88 +1545,55 @@ function renderGate(){
 
   if(access === 'member'){
     gate.hidden = true; app.hidden = false;
-    document.getElementById('adminTab').hidden = (myRole !== 'owner');
+    document.getElementById('adminTab').hidden = !isAdmin();
     return;
   }
   gate.hidden = false; app.hidden = true;
 
   const form  = document.getElementById('gateForm');
   const pend  = document.getElementById('gatePending');
+  const tabs  = document.getElementById('roleTabs');
   const title = document.getElementById('gateTitle');
   const sub   = document.getElementById('gateSub');
 
   if(access === 'connecting'){
-    form.hidden = true; pend.hidden = true;
+    form.hidden = true; pend.hidden = true; tabs.hidden = true;
     title.textContent = 'Connecting…';
     sub.textContent = 'One moment.';
     return;
   }
   if(access === 'pending'){
-    form.hidden = true; pend.hidden = false;
-    title.textContent = 'Almost there';
+    form.hidden = true; pend.hidden = false; tabs.hidden = true;
+    title.textContent = 'No access yet';
     sub.textContent = session ? session.user.email : '';
     document.getElementById('gatePendingText').textContent =
-      'You are signed in, but someone who already uses this ledger has to let you in. Ask them to approve you, then sign in again.';
+      'This login exists but has not been given access to the ledger yet.';
     return;
   }
 
-  form.hidden = false; pend.hidden = true;
-
-  const emailField = document.getElementById('gEmail');
-  if(!emailField.value) emailField.value = lastEmail();
-
-  const codeField   = document.getElementById('gCodeField');
-  const pwField     = document.getElementById('gPasswordField');
-  const sharedField = document.getElementById('gSharedField');
-  const submit      = document.getElementById('gateSubmit');
-  const alt         = document.getElementById('gateAlt');
-  const back        = document.getElementById('gateBack');
-  const personal    = document.getElementById('gatePersonal');
-
-  codeField.hidden   = gateStep !== 'code';
-  pwField.hidden     = gateStep !== 'password';
-  sharedField.hidden = gateStep !== 'shared';
-  emailField.parentElement.hidden = (gateStep === 'code' || gateStep === 'shared');
-  back.hidden = gateStep !== 'code';
-  personal.hidden = !(SHARED_EMAIL && gateStep === 'shared');
-  alt.hidden = gateStep === 'shared';
-
-  if(gateStep === 'shared'){
-    title.textContent = 'Enter the access code';
-    sub.textContent = 'One code for the whole team.';
-    submit.textContent = 'Open the ledger';
-  } else if(gateStep === 'email'){
-    title.textContent = 'Sign in';
-    sub.textContent = 'We will email you a 6-digit code.';
-    submit.textContent = 'Send code';
-    alt.textContent = 'Use a password instead';
-  } else if(gateStep === 'code'){
-    title.textContent = 'Check your email';
-    sub.textContent = 'Code sent to ' + emailField.value;
-    submit.textContent = 'Sign in';
-    alt.textContent = 'Send another code';
-  } else {
-    title.textContent = 'Sign in';
-    sub.textContent = 'Daily sales and payroll for the team.';
-    submit.textContent = 'Sign in';
-    alt.textContent = 'Email me a code instead';
-  }
+  form.hidden = false; pend.hidden = true; tabs.hidden = false;
+  title.textContent = gateRole === 'admin' ? 'Admin sign in' : 'Staff sign in';
+  sub.textContent = gateRole === 'admin'
+    ? 'Full access, including corrections and removals.'
+    : 'Enter the day\u2019s sales and expenses.';
 
   if(!gateFocused){
     gateFocused = true;
-    const target = gateStep === 'shared' ? 'gShared'
-                 : gateStep === 'code' ? 'gCode'
-                 : (emailField.value ? (gateStep === 'password' ? 'gPassword' : 'gateSubmit') : 'gEmail');
-    setTimeout(()=>{ const el = document.getElementById(target); if(el) el.focus(); }, 40);
+    setTimeout(()=>document.getElementById('gShared').focus(), 40);
   }
 }
 
-function setStep(step){
-  gateStep = step;
-  gateFocused = false;
-  gateMsg('');
-  renderGate();
-}
+document.querySelectorAll('#roleTabs .gate-tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('#roleTabs .gate-tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    gateRole = t.dataset.role;
+    document.getElementById('gShared').value = '';
+    gateMsg('');
+    gateFocused = false;
+    renderGate();
+  });
+});
 
 async function refreshAccess(){
   if(!session){ access = 'signedout'; myRole = null; renderGate(); return; }
@@ -1639,107 +1610,42 @@ async function refreshAccess(){
   renderGate();
 }
 
-async function sendCode(email){
-  const { error } = await sb.auth.signInWithOtp({
-    email, options: { shouldCreateUser: true, emailRedirectTo: location.href.split('#')[0] }
-  });
-  if(error) throw error;
-  rememberEmail(email);
-}
-
 document.getElementById('gateSubmit').addEventListener('click', async ()=>{
+  const code = document.getElementById('gShared').value;
+  if(!code){ gateMsg('Enter your access code.', 'err'); return; }
+  const email = gateRole === 'admin' ? ADMIN_EMAIL : STAFF_EMAIL;
+  if(!email){ gateMsg('This login is not set up yet.', 'err'); return; }
+
   const btn = document.getElementById('gateSubmit');
-  const label = btn.textContent;
-  const email = document.getElementById('gEmail').value.trim();
-  btn.disabled = true; btn.textContent = 'Working…';
+  btn.disabled = true; btn.textContent = 'Checking…';
   gateMsg('');
   try{
-    if(gateStep === 'shared'){
-      const code = document.getElementById('gShared').value;
-      if(!code) throw new Error('Enter the access code.');
-      const { data, error } = await sb.auth.signInWithPassword({ email: SHARED_EMAIL, password: code });
-      if(error) throw new Error(/invalid/i.test(error.message) ? 'That code is not right.' : error.message);
-      session = data.session;
-      await refreshAccess();
-      if(access === 'member') syncNow();
-      return;
-    }
-    if(gateStep === 'email'){
-      if(!email) throw new Error('Enter your email address.');
-      await sendCode(email);
-      setStep('code');
-      gateMsg('Code sent. It is good for about an hour.', 'ok');
-      return;
-    }
-    if(gateStep === 'code'){
-      const token = document.getElementById('gCode').value.trim();
-      if(!token) throw new Error('Enter the code from your email.');
-      const { data, error } = await sb.auth.verifyOtp({ email, token, type: 'email' });
-      if(error) throw error;
-      session = data.session;
-      rememberEmail(email);
-      await refreshAccess();
-      if(access === 'member') syncNow();
-      return;
-    }
-    const password = document.getElementById('gPassword').value;
-    if(!email || !password) throw new Error('Enter your email and password.');
-    const { data, error } = await sb.auth.signInWithPassword({ email, password });
-    if(error) throw error;
-    rememberEmail(email);
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: code });
+    if(error) throw new Error(/invalid/i.test(error.message)
+      ? 'That code is not right for ' + gateRole + '.' : error.message);
     session = data.session;
     await refreshAccess();
     if(access === 'member') syncNow();
   }catch(err){
-    const m = err.message || 'That did not work.';
-    gateMsg(/rate limit/i.test(m)
-      ? 'Too many emails sent recently — the allowance resets hourly. Use a password instead if you have one.'
-      : m, 'err');
+    gateMsg(err.message || 'That did not work.', 'err');
   }finally{
-    btn.disabled = false;
-    if(document.getElementById('gateSubmit').textContent === 'Working…') btn.textContent = label;
+    btn.disabled = false; btn.textContent = 'Open the ledger';
   }
 });
 
-document.getElementById('gateAlt').addEventListener('click', async ()=>{
-  if(gateStep === 'email'){ setStep('password'); return; }
-  if(gateStep === 'password'){ setStep('email'); return; }
-  // on the code step this resends
-  const email = document.getElementById('gEmail').value.trim();
-  const btn = document.getElementById('gateAlt');
-  btn.disabled = true; btn.textContent = 'Sending…';
-  try{
-    await sendCode(email);
-    gateMsg('Another code is on its way.', 'ok');
-  }catch(err){
-    const m = err.message || 'Could not send another code.';
-    gateMsg(/rate limit/i.test(m) ? 'Too many emails sent recently — the allowance resets hourly.' : m, 'err');
-  }finally{
-    btn.disabled = false; btn.textContent = 'Send another code';
-  }
-});
-
-document.getElementById('gatePersonal').addEventListener('click', ()=>{
-  document.getElementById('gShared').value = '';
-  setStep('email');
-});
-
-document.getElementById('gateBack').addEventListener('click', ()=>{
-  document.getElementById('gCode').value = '';
-  setStep('email');
-});
-
-['gCode','gPassword','gEmail','gShared'].forEach(id=>{
-  document.getElementById(id).addEventListener('keydown', e=>{
-    if(e.key === 'Enter') document.getElementById('gateSubmit').click();
-  });
+document.getElementById('gShared').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') document.getElementById('gateSubmit').click();
 });
 
 /* ---------- account ---------- */
 const accountOverlay = document.getElementById('accountOverlay');
 document.getElementById('accountBtn').addEventListener('click', ()=>{
-  document.getElementById('accountWho').textContent =
-    session ? 'Signed in as ' + session.user.email : '';
+  document.getElementById('accountWho').textContent = session
+    ? 'Signed in as ' + (isAdmin() ? 'admin' : 'staff') + ' (' + session.user.email + ')'
+    : '';
+  // Only admin may rotate a code, and only its own — staff changing the shared
+  // staff code would lock out everyone else using it.
+  document.getElementById('acctPwWrap').hidden = !isAdmin();
   document.getElementById('acctPassword').value = '';
   document.getElementById('acctMsg').textContent = '';
   document.getElementById('acctMsg').className = 'gate-msg';
@@ -1755,14 +1661,14 @@ document.getElementById('acctSave').addEventListener('click', async ()=>{
   try{
     const { error } = await sb.auth.updateUser({ password: pw });
     if(error) throw error;
-    msg.textContent = 'Password set. You can use it if email is ever unavailable.';
+    msg.textContent = 'Admin code changed. Everyone using the old one must use this instead.';
     msg.className = 'gate-msg ok';
     document.getElementById('acctPassword').value = '';
   }catch(err){
-    msg.textContent = err.message || 'Could not set the password.';
+    msg.textContent = err.message || 'Could not change the code.';
     msg.className = 'gate-msg err';
   }finally{
-    btn.disabled = false; btn.textContent = 'Save password';
+    btn.disabled = false; btn.textContent = 'Save code';
   }
 });
 
@@ -1770,10 +1676,9 @@ async function doSignOut(){
   await sb.auth.signOut();
   session = null; access = 'signedout'; myRole = null;
   setSyncStatus('signedout');
-  document.getElementById('gPassword').value = '';
-  document.getElementById('gCode').value = '';
   document.getElementById('gShared').value = '';
-  setStep(SHARED_EMAIL ? 'shared' : 'email');
+  gateFocused = false;
+  renderGate();
 }
 document.getElementById('gateSignOut').addEventListener('click', doSignOut);
 document.getElementById('signOutBtn').addEventListener('click', async ()=>{
