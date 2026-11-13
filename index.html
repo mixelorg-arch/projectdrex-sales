@@ -796,7 +796,7 @@ function applyRole(){
   set('dangerCard', admin);     // delete a whole month
   set('importBtn', admin);      // replaces the entire ledger
   set('addPersonBtn', admin);
-  set('adminTab', admin);
+  set('adminTab', canManageMembers());
   const note = document.getElementById('staffNote');
   if(note) note.hidden = admin;
 }
@@ -1531,7 +1531,14 @@ async function initSync(){
 // enter the day's figures, admin can also correct and remove them.
 let access = 'connecting', myRole = null, gateRole = 'staff', gateFocused = false;
 
-const isAdmin = () => myRole === 'owner';
+// This database is shared with the till and inventory apps, which name their
+// admin role 'till_admin'. Renaming roles would break those apps' policies, so
+// the ledger accepts every spelling of admin instead.
+const ADMIN_ROLES = ['owner', 'admin', 'till_admin'];
+const isAdmin = () => ADMIN_ROLES.indexOf(myRole) !== -1;
+// Managing who can log in is gated by is_owner() in the database, which accepts
+// only 'owner'. Showing that tab to anyone else would just produce failures.
+const canManageMembers = () => myRole === 'owner';
 
 function gateMsg(text, kind){
   const el = document.getElementById('gateMsg');
@@ -1545,7 +1552,7 @@ function renderGate(){
 
   if(access === 'member'){
     gate.hidden = true; app.hidden = false;
-    document.getElementById('adminTab').hidden = !isAdmin();
+    document.getElementById('adminTab').hidden = !canManageMembers();
     return;
   }
   gate.hidden = false; app.hidden = true;
@@ -1641,7 +1648,8 @@ document.getElementById('gShared').addEventListener('keydown', e=>{
 const accountOverlay = document.getElementById('accountOverlay');
 document.getElementById('accountBtn').addEventListener('click', ()=>{
   document.getElementById('accountWho').textContent = session
-    ? 'Signed in as ' + (isAdmin() ? 'admin' : 'staff') + ' (' + session.user.email + ')'
+    ? 'Signed in as ' + (isAdmin() ? 'admin' : 'staff')
+      + ' — ' + session.user.email + ' (role: ' + (myRole || 'none') + ')'
     : '';
   // Only admin may rotate a code, and only its own — staff changing the shared
   // staff code would lock out everyone else using it.
