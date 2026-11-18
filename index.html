@@ -86,6 +86,7 @@
   tr.week-row:hover td{background:var(--sky);}
   .pill-status{display:inline-block;padding:2px 10px;border-radius:var(--radius-pill);font-size:11px;font-weight:500;}
   .pill-paid{background:var(--sky);color:var(--cyan-edge);}
+.att-sub{font-size:11px;color:var(--muted,#6b7280);margin-top:3px;white-space:nowrap}
   .pill-unpaid{background:#f5e8d8;color:#9a6a1f;}
   .pill-closed{background:#f0efed;color:var(--ash);}
   .row-actions{display:flex;gap:6px;}
@@ -397,6 +398,7 @@
     <button class="tab active" data-tab="overview">Overview</button>
     <button class="tab" data-tab="sales">Sales log</button>
     <button class="tab" data-tab="expenses">Expenses</button>
+    <button class="tab" data-tab="attendance">Attendance</button>
     <button class="tab" data-tab="people">People</button>
     <button class="tab" data-tab="admin" id="adminTab" hidden>Admin</button>
   </div>
@@ -492,6 +494,24 @@
     <div class="card">
       <div class="card-head"><h3>Who can use this ledger</h3></div>
       <div id="memberList"></div>
+    </div>
+  </div>
+
+  <!-- ATTENDANCE -->
+  <div class="section" id="tab-attendance">
+    <div class="card">
+      <div class="card-head">
+        <h3>Attendance</h3>
+        <button class="btn btn-ghost" id="attRefresh">Refresh</button>
+      </div>
+      <p class="report-hint" id="attNote">Read from the time clock. Nothing here changes a sales day.</p>
+      <div class="table-scroll">
+        <table>
+          <thead><tr id="attHead"></tr></thead>
+          <tbody id="attBody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="attEmpty" style="display:none;">No attendance for this month.</div>
     </div>
   </div>
 
@@ -813,9 +833,137 @@ function render(){
   netEl.className = 'value' + (t.net<0 ? ' neg' : '');
 
   renderEntries();
+  renderAttendance();
   renderExpenses();
   renderWeekly();
   renderPeople();
+}
+
+/* ---------------------------------------------------------------------
+   Attendance — who the time clock says was in.
+
+   The punches live in ProjectDrex AMS, a different Supabase project. This
+   project keeps a small mirror of them (salesinv_staff, salesinv_attendance),
+   filled by salesinv_pull_attendance(). Everything below only READS that
+   mirror: no entry, no date and no figure in the ledger is written by any of
+   it, so the sales days stay exactly as they were typed.
+
+   Deliberately not merged into the pay columns of the sales log: the two
+   rosters do not line up (the clock has "JUSTINE", the ledger has "Justin",
+   and there are two Arvins), and guessing would credit the wrong person.
+   --------------------------------------------------------------------- */
+
+let attendance = { staff: [], days: [], pulledAt: null, note: '' };
+
+// A punch at 7:59am Manila is 23:59 the day before in UTC. The mirror's
+// work_date is already the local day, so slice it as text and never re-derive
+// it from the timestamps.
+const attDayKey = (row) => String(row.work_date || '').slice(0,10);
+
+const attTime = (ts) => ts
+  ? new Date(ts).toLocaleTimeString('en-PH',{hour:'numeric', minute:'2-digit'})
+  : '';
+
+function attCell(row){
+  if(!row) return '<td class="c-empty" data-label="%L">—</td>';
+  const bits = [];
+  if(row.first_in && row.last_out) bits.push(attTime(row.first_in)+' – '+attTime(row.last_out));
+  else if(row.first_in)            bits.push('in '+attTime(row.first_in));
+  else if(row.last_out)            bits.push('out '+attTime(row.last_out)+', no in');
+  if(row.is_half_day) bits.push('half');
+  if(row.is_overtime) bits.push('OT');
+  if(row.unverified)  bits.push('unverified');
+  return '<td data-label="%L"><span class="pill-status pill-paid">In</span>'
+       + (bits.length ? '<div class="att-sub">'+escapeHtml(bits.join(' · '))+'</div>' : '')
+       + '</td>';
+}
+
+function renderAttendance(){
+  const head  = document.getElementById('attHead');
+  const body  = document.getElementById('attBody');
+  const empty = document.getElementById('attEmpty');
+  const note  = document.getElementById('attNote');
+  if(!head) return;
+
+  note.textContent = attendance.note
+    || (attendance.pulledAt
+        ? 'Read from the time clock, ' + attTime(attendance.pulledAt) + '. Nothing here changes a sales day.'
+        : 'Read from the time clock. Nothing here changes a sales day.');
+
+  const people = attendance.staff.filter(p => p.active);
+  const rows   = attendance.days.filter(r => attDayKey(r).slice(0,7) === state.month);
+
+  if(!people.length || !rows.length){
+    head.innerHTML = '';
+    body.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  head.innerHTML = '<th>Date</th>'
+    + people.map(p => '<th>'+escapeHtml(p.full_name)+'</th>').join('')
+    + '<th>In</th>';
+
+  const byDay = new Map();
+  rows.forEach(r => {
+    const k = attDayKey(r);
+    if(!byDay.has(k)) byDay.set(k, new Map());
+    byDay.get(k).set(r.code, r);
+  });
+
+  const days = [...byDay.keys()].sort();
+  body.innerHTML = days.map(day => {
+    const onDay = byDay.get(day);
+    const cells = people.map(p =>
+      attCell(onDay.get(p.code)).split('%L').join(escapeHtml(p.full_name))).join('');
+    return '<tr><td data-label="Date" class="c-head">'+fmtDate(day)+'</td>'
+         + cells
+         + '<td data-label="In">'+onDay.size+'</td></tr>';
+  }).join('');
+
+  // Days present per person for the month, which is the tally he was after.
+  const totals = people.map(p => {
+    const n = days.filter(d => byDay.get(d).has(p.code)).length;
+    return '<td data-label="'+escapeHtml(p.full_name)+'"><strong>'+n+'</strong></td>';
+  }).join('');
+  body.innerHTML += '<tr class="week-row"><td class="c-head">Days present</td>'+totals
+                  + '<td>'+days.length+'</td></tr>';
+}
+
+async function loadAttendance(){
+  if(!sb || !session || access !== 'member'){
+    attendance.note = 'Sign in to see the time clock.';
+    renderAttendance();
+    return;
+  }
+  try{
+    const [who, rows] = await Promise.all([
+      sb.from('salesinv_staff').select('*').order('full_name'),
+      sb.from('salesinv_attendance').select('*').order('work_date',{ascending:false}).limit(2000)
+    ]);
+    if(who.error || rows.error){
+      // Most likely this project has not had attendance.sql run on it yet.
+      attendance.note = 'The time clock is not linked to this ledger yet.';
+    }else{
+      attendance.staff = who.data || [];
+      attendance.days  = rows.data || [];
+      attendance.note  = '';
+    }
+  }catch(e){
+    attendance.note = 'Could not reach the time clock just now.';
+  }
+  renderAttendance();
+}
+
+// Asks the database to go and fetch the newest punches, then re-reads.
+async function pullAttendance(days){
+  if(!sb || !session || access !== 'member') return;
+  try{
+    const { data, error } = await sb.rpc('salesinv_pull_attendance', { p_days: days || 60 });
+    if(!error && data && data.as_of) attendance.pulledAt = data.as_of;
+  }catch(e){ /* keep showing the mirror as it stands */ }
+  await loadAttendance();
 }
 
 function renderEntries(){
@@ -1798,6 +1946,18 @@ document.getElementById('inviteBtn').addEventListener('click', async ()=>{
 });
 
 document.querySelector('[data-tab="admin"]').addEventListener('click', renderAdmin);
+document.querySelector('[data-tab="attendance"]').addEventListener('click', ()=>{
+  renderAttendance();
+  // Only reach out the first time it is opened; after that the Refresh button
+  // is there, so opening the tab is never a slow tab.
+  if(!attendance.pulledAt && !attendance.days.length) pullAttendance(60);
+});
+document.getElementById('attRefresh').addEventListener('click', async (e)=>{
+  const b = e.currentTarget;
+  b.disabled = true; b.textContent = 'Refreshing…';
+  await pullAttendance(60);
+  b.disabled = false; b.textContent = 'Refresh';
+});
 
 /* ---------- misc ---------- */
 [entryOverlay, expenseOverlay, personOverlay, deleteOverlay, accountOverlay].forEach(ov=>{
